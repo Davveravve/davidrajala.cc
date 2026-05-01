@@ -48,7 +48,13 @@ export default async function RootLayout({
           <ScrollProgress />
           <SiteHeader />
           <main className="relative">{children}</main>
-          <SiteFooter />
+          <SiteFooter
+            about={{
+              email: about.email,
+              phone: about.phone,
+              location: about.location,
+            }}
+          />
           <ChatPanel
             avatarUrl={about.avatarUrl}
             ownerName={about.name}

@@ -4,7 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChatButton } from "@/components/chat/chat-button";
 
-export function SiteFooter() {
+type FooterAbout = {
+  email: string;
+  phone: string;
+  location: string;
+};
+
+export function SiteFooter({ about }: { about: FooterAbout }) {
   const pathname = usePathname();
   if (pathname?.startsWith("/admin")) return null;
 
@@ -18,8 +24,8 @@ export function SiteFooter() {
               David Rajala
             </div>
             <p className="text-[var(--color-fg-muted)] text-sm leading-relaxed max-w-sm">
-              Full Stack Developer based in Gothenburg. Building digital products
-              that feel as good as they look.
+              Full Stack Developer based in {about.location || "Gothenburg"}.
+              Building digital products that feel as good as they look.
             </p>
           </div>
 
@@ -56,16 +62,31 @@ export function SiteFooter() {
               Get in touch
             </h4>
             <ul className="space-y-2">
-              <li>
-                <a
-                  href="mailto:davidjohanssonrajala@gmail.com"
-                  className="text-sm hover:text-[var(--color-accent)] transition-colors"
-                >
-                  davidjohanssonrajala@gmail.com
-                </a>
-              </li>
-              <li className="text-sm text-[var(--color-fg-muted)]">+46 72 304 02 96</li>
-              <li className="text-sm text-[var(--color-fg-muted)]">Gothenburg, Sweden</li>
+              {about.email && (
+                <li>
+                  <a
+                    href={`mailto:${about.email}`}
+                    className="text-sm hover:text-[var(--color-accent)] transition-colors"
+                  >
+                    {about.email}
+                  </a>
+                </li>
+              )}
+              {about.phone && (
+                <li>
+                  <a
+                    href={`tel:${about.phone.replace(/\s/g, "")}`}
+                    className="text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] transition-colors"
+                  >
+                    {about.phone}
+                  </a>
+                </li>
+              )}
+              {about.location && (
+                <li className="text-sm text-[var(--color-fg-muted)]">
+                  {about.location}
+                </li>
+              )}
             </ul>
           </div>
         </div>
