@@ -11,3 +11,5 @@ prisma/dev.db-journal
 public/uploads/*
 !public/uploads/.gitkeep
 .DS_Store
+.run-bootstrap.py
+data-export.json

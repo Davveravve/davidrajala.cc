@@ -100,13 +100,6 @@ export function LoginForm({ has2fa }: { has2fa: boolean }) {
         )}
       </button>
 
-      {!has2fa && (
-        <p className="text-xs text-[var(--color-fg-muted)] text-center leading-relaxed">
-          Default password: <span className="font-mono text-[var(--color-fg)]">123456</span>{" "}
-          — change in <span className="font-mono">.env</span> and run{" "}
-          <span className="font-mono">npm&nbsp;run&nbsp;db:seed</span>.
-        </p>
-      )}
     </form>
   );
 }

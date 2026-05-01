@@ -32,7 +32,24 @@
       "Bash(curl -s -o /dev/null -w \"/projekt/relicrush %{http_code}\\\\n\" http://localhost:3000/projekt/relicrush)",
       "Bash(curl -s -o /dev/null -w \"/projekt/fitness-app %{http_code}\\\\n\" http://localhost:3000/projekt/fitness-app)",
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git config *)",
+      "Bash(git commit -m ' *)",
+      "Bash(chmod +x scripts/server-bootstrap.sh scripts/deploy.sh)",
+      "Bash(git rm *)",
+      "Bash(git update-index *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(curl -s -o /dev/null -w \"bootstrap %{http_code}\\\\n\" https://raw.githubusercontent.com/Davveravve/davidrajala.cc/main/scripts/server-bootstrap.sh)",
+      "Bash(curl -s -o /dev/null -w \"deploy %{http_code}\\\\n\" https://raw.githubusercontent.com/Davveravve/davidrajala.cc/main/scripts/deploy.sh)",
+      "Bash(curl -s -o /dev/null -w \"repo %{http_code}\\\\n\" https://github.com/Davveravve/davidrajala.cc)",
+      "Bash(curl -s \"https://api.github.com/repos/Davveravve/davidrajala.cc/contents/scripts\")",
+      "Bash(nslookup davidrajala.cc 8.8.8.8)",
+      "Bash(nslookup www.davidrajala.cc 8.8.8.8)",
+      "Bash(python -c \"import paramiko\")",
+      "Bash(pip install *)",
+      "Bash(python -c \"import paramiko; print\\('ok', paramiko.__version__\\)\")",
+      "Bash(BOOT_PW='LnHbrJXNvL4wrJnbhbCPP' python .run-bootstrap.py)"
     ]
   }
 }
