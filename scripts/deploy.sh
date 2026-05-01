@@ -43,6 +43,12 @@ CHANGED="$(git diff --name-only "$CURRENT" "$TARGET" || true)"
 git reset --hard "$TARGET"
 git clean -fd
 
+# Repo ships sqlite for local dev — flip the provider on prod every pull.
+# Same one-line fix as in server-bootstrap.sh.
+if grep -q 'provider = "sqlite"' prisma/schema.prisma; then
+  sed -i 's|provider = "sqlite"|provider = "postgresql"|' prisma/schema.prisma
+fi
+
 NEED_NPM_CI=0
 NEED_PRISMA=0
 if echo "$CHANGED" | grep -qE '^(package(-lock)?\.json|prisma/schema\.prisma)$'; then
