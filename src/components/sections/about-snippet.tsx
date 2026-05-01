@@ -5,7 +5,7 @@ import { parseList } from "@/lib/queries";
 import type { AboutMe } from "@prisma/client";
 
 export function AboutSnippet({ about }: { about: AboutMe }) {
-  const skills = parseList(about.skills).slice(0, 8);
+  const skills = parseList(about.skills);
 
   return (
     <section className="relative py-24 md:py-32 overflow-hidden">

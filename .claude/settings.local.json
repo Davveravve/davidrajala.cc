@@ -49,7 +49,12 @@
       "Bash(python -c \"import paramiko\")",
       "Bash(pip install *)",
       "Bash(python -c \"import paramiko; print\\('ok', paramiko.__version__\\)\")",
-      "Bash(BOOT_PW='LnHbrJXNvL4wrJnbhbCPP' python .run-bootstrap.py)"
+      "Bash(BOOT_PW='LnHbrJXNvL4wrJnbhbCPP' python .run-bootstrap.py)",
+      "Bash(npx tsx *)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Categories:', len\\(d['categories']\\)\\); print\\('Projects:', len\\(d['projects']\\)\\); [print\\(' -', p['slug'], '\\(', len\\(p['images']\\), 'images \\)'\\) for p in d['projects']]; print\\('About:', d['about']['name'] if d['about'] else None\\); print\\('Settings:', d['settings'] is not None\\)\")",
+      "Bash(BOOT_PW='LnHbrJXNvL4wrJnbhbCPP' python .run-migrate.py)",
+      "Bash(git commit -m 'deploy: keep Prisma provider as postgresql after every pull *)",
+      "Bash(git commit -m 'show all skills on home about-snippet \\(remove 8-item cap\\) *)"
     ]
   }
 }
