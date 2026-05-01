@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(npm run *)",
+      "Bash(timeout 30 npx next build)",
+      "Bash(rm -rf .next)",
+      "Bash(timeout 60 npx next build)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} /projekt\\\\n\" http://localhost:3000/projekt)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} /projekt/halsoapp\\\\n\" http://localhost:3000/projekt/halsoapp)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} /admin/login\\\\n\" http://localhost:3000/admin/login)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} /admin \\(should redirect\\)\\\\n\" http://localhost:3000/admin)",
+      "Bash(curl -s -o /dev/null -w \"/ %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"/kontakt %{http_code}\\\\n\" http://localhost:3000/kontakt)",
+      "Bash(curl -s -o /dev/null -w \"/projekt %{http_code}\\\\n\" http://localhost:3000/projekt)",
+      "Bash(curl -s -o /dev/null -w \"/om-mig %{http_code}\\\\n\" http://localhost:3000/om-mig)",
+      "PowerShell(Get-Process *)",
+      "Bash(timeout 90 npx next build)",
+      "Bash(curl -s -o /dev/null -w \"/admin %{http_code} \\(->login\\)\\\\n\" http://localhost:3000/admin)",
+      "Bash(curl -s -o /dev/null -w \"/admin/login %{http_code}\\\\n\" http://localhost:3000/admin/login)",
+      "Bash(curl -s -o /dev/null -w \"/admin/setup-2fa %{http_code} \\(->login\\)\\\\n\" http://localhost:3000/admin/setup-2fa)",
+      "Bash(curl -s -o /dev/null -w \"/kontakt %{http_code} \\(404\\)\\\\n\" http://localhost:3000/kontakt)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s \"http://localhost:3000/_next/static/css/app/layout.css?v=1777651864778\")",
+      "Bash(curl -s -o /dev/null -w \"/admin/installningar %{http_code}\\\\n\" http://localhost:3000/admin/installningar)",
+      "Bash(curl -s -o /dev/null -w \"/projekt/halsoapp %{http_code}\\\\n\" http://localhost:3000/projekt/halsoapp)",
+      "Bash(curl -s -o /dev/null -w \"/projekt/relicrush-gg %{http_code}\\\\n\" http://localhost:3000/projekt/relicrush-gg)",
+      "Bash(node -e 'const {PrismaClient}=require\\('\\\\''@prisma/client'\\\\''\\); const p=new PrismaClient\\(\\); p.project.findMany\\({select:{slug:true}}\\).then\\(r=>console.log\\(JSON.stringify\\(r\\)\\)\\).finally\\(\\(\\)=>p.$disconnect\\(\\)\\);')",
+      "Bash(curl -s -o /dev/null -w \"/projekt/relicrush %{http_code}\\\\n\" http://localhost:3000/projekt/relicrush)",
+      "Bash(curl -s -o /dev/null -w \"/projekt/fitness-app %{http_code}\\\\n\" http://localhost:3000/projekt/fitness-app)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}

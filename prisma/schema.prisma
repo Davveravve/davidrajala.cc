@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  totpSecret   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  order     Int       @default(0)
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Project {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  title       String
+  summary     String
+  body        String         @default("")
+  coverUrl    String
+  liveUrl     String?
+  repoUrl     String?
+  techStack   String         @default("")
+  order       Int            @default(0)
+  featured    Boolean        @default(false)
+  published   Boolean        @default(true)
+  categoryId  String?
+  category    Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  images      ProjectImage[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model ProjectImage {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String  @default("")
+  order     Int     @default(0)
+  createdAt DateTime @default(now())
+}
+
+model AboutMe {
+  id              String   @id @default("singleton")
+  name            String   @default("David Rajala")
+  role            String   @default("Full Stack Developer")
+  avatarUrl       String   @default("")
+  bio             String   @default("")
+  location        String   @default("Göteborg, Sverige")
+  email           String   @default("")
+  phone           String   @default("")
+  yearsExp        Int      @default(0)
+  projectsDone    Int      @default(0)
+  clients         Int      @default(0)
+  skills          String   @default("")
+  available       Boolean  @default(true)
+  busyMessage     String   @default("Arbetar med pågående projekt — väntetid kan ske")
+  heroBgUrl       String   @default("")
+  heroBgType      String   @default("")
+  updatedAt       DateTime @updatedAt @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @default("")
+  message   String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+  saved     Boolean  @default(false)
+  contacts  ContactDetail[]
+}
+
+model ContactDetail {
+  id        String   @id @default(cuid())
+  messageId String
+  message   ContactMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  type      String
+  value     String
+  label     String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model NotificationSettings {
+  id              String   @id @default("singleton")
+  telegramEnabled Boolean  @default(false)
+  telegramToken   String   @default("")
+  telegramChatId  String   @default("")
+  updatedAt       DateTime @updatedAt @default(now())
+}
