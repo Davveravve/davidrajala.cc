@@ -65,10 +65,34 @@ npm run dev
 
 ## Deploy to Hetzner
 
-Step-by-step for the live server.
-
 **Target server:** `46.224.128.108` (IPv6 `2a01:4f8:c012:5b20::/64`)
 **Domain:** `davidrajala.cc`
+
+### TL;DR (one paste, done)
+
+After DNS is pointed at the server, SSH in as root (or use Hetzner's web console) and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Davveravve/davidrajala.cc/main/scripts/server-bootstrap.sh | bash
+```
+
+This installs Node 22 + Postgres + Caddy, creates an `app` user, clones the repo, generates a fresh DB password and admin password, builds the app, sets up systemd service + auto-deploy timer, configures Caddy with auto-HTTPS, and opens the firewall.
+
+The script is **idempotent** — safe to re-run if anything fails midway.
+
+When it finishes it prints the generated admin password — save it.
+
+### Auto-deploy from git push
+
+A systemd timer (`portfolio-deploy.timer`) polls `origin/main` every 2 minutes. When you `git push`, the server detects the new commit, pulls, runs `npm ci` only if dependencies changed, runs `prisma db push` only if the schema changed, builds, and restarts the service.
+
+To deploy: just `git push origin main` from your laptop. Watch the timer fire on the server with:
+
+```bash
+sudo journalctl -u portfolio-deploy.service -f
+```
+
+### What the bootstrap does (in detail)
 
 ### 0. Rotate the root password
 
