@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ensureAdmin } from "@/lib/admin-guard";
 import { saveUploadedFile, deleteUpload, isLocalUpload } from "@/lib/uploads";
+import { logActivity } from "@/lib/activity";
 
 const schema = z.object({
   name: z.string().min(1).max(120),
@@ -80,6 +81,11 @@ export async function updateAbout(formData: FormData) {
     where: { id: "singleton" },
     create: { id: "singleton", ...data, avatarUrl, heroBgUrl, heroBgType },
     update: { ...data, avatarUrl, heroBgUrl, heroBgType },
+  });
+
+  await logActivity("about.update", {
+    entityType: "about",
+    label: data.name,
   });
 
   revalidatePath("/");

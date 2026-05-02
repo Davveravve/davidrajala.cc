@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensureAdmin } from "@/lib/admin-guard";
+import { logActivity } from "@/lib/activity";
 
 const sectionSchema = z.object({
   eyebrow: z.string().max(120).nullable(),
@@ -30,6 +31,11 @@ export async function updateHomeSection(id: string, formData: FormData) {
     ctaHref: nullable(formData.get("ctaHref")),
   });
   await prisma.homeSection.update({ where: { id }, data });
+  await logActivity("section.update", {
+    entityType: "section",
+    entityId: id,
+    label: id,
+  });
   revalidatePath("/");
   revalidatePath("/admin/site-editor");
 }
@@ -37,6 +43,11 @@ export async function updateHomeSection(id: string, formData: FormData) {
 export async function toggleHomeSectionVisible(id: string, visible: boolean) {
   await ensureAdmin();
   await prisma.homeSection.update({ where: { id }, data: { visible } });
+  await logActivity("section.toggle", {
+    entityType: "section",
+    entityId: id,
+    label: visible ? "shown" : "hidden",
+  });
   revalidatePath("/");
   revalidatePath("/admin/site-editor");
 }
@@ -48,6 +59,10 @@ export async function reorderHomeSections(orderedIds: string[]) {
       prisma.homeSection.update({ where: { id }, data: { order: idx } }),
     ),
   );
+  await logActivity("section.reorder", {
+    entityType: "section",
+    label: `${orderedIds.length} sections`,
+  });
   revalidatePath("/");
   revalidatePath("/admin/site-editor");
 }
@@ -92,6 +107,10 @@ export async function updateSiteSettings(formData: FormData) {
     where: { id: "singleton" },
     create: { id: "singleton", ...data },
     update: data,
+  });
+  await logActivity("settings.update", {
+    entityType: "settings",
+    label: "site settings",
   });
   revalidatePath("/", "layout");
   revalidatePath("/admin/site-editor");

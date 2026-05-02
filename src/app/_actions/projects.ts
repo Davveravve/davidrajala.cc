@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ensureAdmin } from "@/lib/admin-guard";
 import { saveUploadedFile, deleteUpload, isLocalUpload } from "@/lib/uploads";
+import { logActivity } from "@/lib/activity";
 
 function slugify(s: string) {
   return s
@@ -30,6 +31,14 @@ const projectSchema = z.object({
   categoryId: z.string().optional().or(z.literal("")),
   featured: z.boolean().default(false),
   published: z.boolean().default(true),
+  status: z.enum(["live", "wip", "archived", "oss"]).default("live"),
+  hasCaseStudy: z.boolean().default(false),
+  caseChallenge: z.string().max(20000).default(""),
+  caseProcess: z.string().max(20000).default(""),
+  caseOutcome: z.string().max(20000).default(""),
+  caseLessons: z.string().max(20000).default(""),
+  beforeUrl: z.string().url().optional().or(z.literal("")),
+  afterUrl: z.string().url().optional().or(z.literal("")),
 });
 
 function fdToBool(v: FormDataEntryValue | null) {
@@ -62,6 +71,14 @@ export async function createProject(formData: FormData) {
     categoryId: formData.get("categoryId") ?? "",
     featured: fdToBool(formData.get("featured")),
     published: fdToBool(formData.get("published")),
+    status: formData.get("status") ?? "live",
+    hasCaseStudy: fdToBool(formData.get("hasCaseStudy")),
+    caseChallenge: formData.get("caseChallenge") ?? "",
+    caseProcess: formData.get("caseProcess") ?? "",
+    caseOutcome: formData.get("caseOutcome") ?? "",
+    caseLessons: formData.get("caseLessons") ?? "",
+    beforeUrl: formData.get("beforeUrl") ?? "",
+    afterUrl: formData.get("afterUrl") ?? "",
   });
 
   const slugBase = slugify(data.slug || data.title);
@@ -92,6 +109,14 @@ export async function createProject(formData: FormData) {
       categoryId: data.categoryId || null,
       featured: data.featured,
       published: data.published,
+      status: data.status,
+      hasCaseStudy: data.hasCaseStudy,
+      caseChallenge: data.caseChallenge,
+      caseProcess: data.caseProcess,
+      caseOutcome: data.caseOutcome,
+      caseLessons: data.caseLessons,
+      beforeUrl: data.beforeUrl || null,
+      afterUrl: data.afterUrl || null,
       coverUrl,
       order,
     },
@@ -107,6 +132,12 @@ export async function createProject(formData: FormData) {
       data: { projectId: project.id, url, order: i },
     });
   }
+
+  await logActivity("project.create", {
+    entityType: "project",
+    entityId: project.id,
+    label: data.title,
+  });
 
   revalidatePath("/");
   revalidatePath("/projects");
@@ -129,6 +160,14 @@ export async function updateProject(projectId: string, formData: FormData) {
     categoryId: formData.get("categoryId") ?? "",
     featured: fdToBool(formData.get("featured")),
     published: fdToBool(formData.get("published")),
+    status: formData.get("status") ?? "live",
+    hasCaseStudy: fdToBool(formData.get("hasCaseStudy")),
+    caseChallenge: formData.get("caseChallenge") ?? "",
+    caseProcess: formData.get("caseProcess") ?? "",
+    caseOutcome: formData.get("caseOutcome") ?? "",
+    caseLessons: formData.get("caseLessons") ?? "",
+    beforeUrl: formData.get("beforeUrl") ?? "",
+    afterUrl: formData.get("afterUrl") ?? "",
   });
 
   const existing = await prisma.project.findUnique({ where: { id: projectId } });
@@ -162,6 +201,14 @@ export async function updateProject(projectId: string, formData: FormData) {
       categoryId: data.categoryId || null,
       // featured is managed separately via setFeaturedProject() — never touched on edit.
       published: data.published,
+      status: data.status,
+      hasCaseStudy: data.hasCaseStudy,
+      caseChallenge: data.caseChallenge,
+      caseProcess: data.caseProcess,
+      caseOutcome: data.caseOutcome,
+      caseLessons: data.caseLessons,
+      beforeUrl: data.beforeUrl || null,
+      afterUrl: data.afterUrl || null,
       coverUrl,
     },
   });
@@ -182,6 +229,12 @@ export async function updateProject(projectId: string, formData: FormData) {
       });
     }
   }
+
+  await logActivity("project.update", {
+    entityType: "project",
+    entityId: projectId,
+    label: data.title,
+  });
 
   revalidatePath("/");
   revalidatePath("/projects");
@@ -206,6 +259,12 @@ export async function deleteProject(projectId: string) {
   }
 
   await prisma.project.delete({ where: { id: projectId } });
+
+  await logActivity("project.delete", {
+    entityType: "project",
+    entityId: projectId,
+    label: existing.title,
+  });
 
   revalidatePath("/");
   revalidatePath("/projects");

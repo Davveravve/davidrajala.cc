@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensureAdmin } from "@/lib/admin-guard";
+import { logActivity } from "@/lib/activity";
 import { z } from "zod";
 
 const schema = z.object({
@@ -19,8 +20,13 @@ export async function createCategory(formData: FormData) {
       .trim(),
   });
   const last = await prisma.category.aggregate({ _max: { order: true } });
-  await prisma.category.create({
+  const created = await prisma.category.create({
     data: { ...data, order: (last._max.order ?? -1) + 1 },
+  });
+  await logActivity("category.create", {
+    entityType: "category",
+    entityId: created.id,
+    label: data.name,
   });
   revalidatePath("/admin/categories");
   revalidatePath("/projects");
@@ -35,13 +41,24 @@ export async function updateCategory(id: string, formData: FormData) {
       .trim(),
   });
   await prisma.category.update({ where: { id }, data });
+  await logActivity("category.update", {
+    entityType: "category",
+    entityId: id,
+    label: data.name,
+  });
   revalidatePath("/admin/categories");
   revalidatePath("/projects");
 }
 
 export async function deleteCategory(id: string) {
   await ensureAdmin();
+  const existing = await prisma.category.findUnique({ where: { id } });
   await prisma.category.delete({ where: { id } });
+  await logActivity("category.delete", {
+    entityType: "category",
+    entityId: id,
+    label: existing?.name ?? "",
+  });
   revalidatePath("/admin/categories");
   revalidatePath("/projects");
 }

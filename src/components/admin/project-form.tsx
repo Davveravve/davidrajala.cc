@@ -28,6 +28,14 @@ type ProjectInput = {
   categoryId: string | null;
   featured: boolean;
   published: boolean;
+  status: string;
+  hasCaseStudy: boolean;
+  caseChallenge: string;
+  caseProcess: string;
+  caseOutcome: string;
+  caseLessons: string;
+  beforeUrl: string | null;
+  afterUrl: string | null;
   images: ImageRow[];
 };
 
@@ -50,6 +58,7 @@ export function ProjectForm(props: Props) {
     project?.images ?? [],
   );
   const [pendingDeleteImage, setPendingDeleteImage] = useState<string | null>(null);
+  const [hasCase, setHasCase] = useState(project?.hasCaseStudy ?? false);
   const [isPending, startTransition] = useTransition();
 
   function onCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -219,6 +228,84 @@ export function ProjectForm(props: Props) {
         </div>
         <p className="text-xs text-[var(--color-fg-muted)] mt-2">
           Mark as <span className="text-[var(--color-accent)]">featured</span> via the star in the project list — only one project can be featured at a time.
+        </p>
+      </Card>
+
+      <Card title="Status">
+        <Select
+          label="Project status"
+          name="status"
+          defaultValue={project?.status ?? "live"}
+          options={[
+            { label: "Live", value: "live" },
+            { label: "WIP", value: "wip" },
+            { label: "Archived", value: "archived" },
+            { label: "Open source", value: "oss" },
+          ]}
+        />
+      </Card>
+
+      <Card title="Case study">
+        <Toggle
+          label="Has case study"
+          name="hasCaseStudy"
+          defaultChecked={project?.hasCaseStudy ?? false}
+          help="Show an in-depth case study section on the public page"
+          onChange={(e) => setHasCase(e.currentTarget.checked)}
+        />
+        <div className={hasCase ? "block space-y-5" : "hidden"}>
+          <Field
+            label="Challenge"
+            name="caseChallenge"
+            as="textarea"
+            rows={5}
+            defaultValue={project?.caseChallenge}
+            placeholder="What problem did this project solve?"
+          />
+          <Field
+            label="Process"
+            name="caseProcess"
+            as="textarea"
+            rows={5}
+            defaultValue={project?.caseProcess}
+            placeholder="How did you approach the work?"
+          />
+          <Field
+            label="Outcome"
+            name="caseOutcome"
+            as="textarea"
+            rows={5}
+            defaultValue={project?.caseOutcome}
+            placeholder="What was the result?"
+          />
+          <Field
+            label="Lessons learned"
+            name="caseLessons"
+            as="textarea"
+            rows={5}
+            defaultValue={project?.caseLessons}
+            placeholder="Key takeaways from the project"
+          />
+        </div>
+      </Card>
+
+      <Card title="Before / After (optional)">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field
+            label="Before URL"
+            name="beforeUrl"
+            defaultValue={project?.beforeUrl ?? ""}
+            placeholder="https://..."
+          />
+          <Field
+            label="After URL"
+            name="afterUrl"
+            defaultValue={project?.afterUrl ?? ""}
+            placeholder="https://..."
+          />
+        </div>
+        <p className="text-xs text-[var(--color-fg-muted)] mt-2">
+          Used by the before/after slider on the public page.
         </p>
       </Card>
 
@@ -428,11 +515,13 @@ function Toggle({
   name,
   defaultChecked,
   help,
+  onChange,
 }: {
   label: string;
   name: string;
   defaultChecked: boolean;
   help?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <label className="inline-flex items-center gap-3 cursor-pointer select-none px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[var(--color-border-strong)] transition-colors">
@@ -440,6 +529,7 @@ function Toggle({
         type="checkbox"
         name={name}
         defaultChecked={defaultChecked}
+        onChange={onChange}
         className="peer sr-only"
       />
       <span className="relative h-5 w-9 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] peer-checked:bg-[var(--color-accent)] peer-checked:border-[var(--color-accent)] transition-colors">

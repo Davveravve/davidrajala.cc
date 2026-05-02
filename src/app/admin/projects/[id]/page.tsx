@@ -53,6 +53,14 @@ export default async function EditProjectPage({
           categoryId: project.categoryId,
           featured: project.featured,
           published: project.published,
+          status: project.status,
+          hasCaseStudy: project.hasCaseStudy,
+          caseChallenge: project.caseChallenge,
+          caseProcess: project.caseProcess,
+          caseOutcome: project.caseOutcome,
+          caseLessons: project.caseLessons,
+          beforeUrl: project.beforeUrl,
+          afterUrl: project.afterUrl,
           images: project.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt })),
         }}
       />

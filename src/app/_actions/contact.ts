@@ -33,6 +33,28 @@ function rateLimit(ip: string): boolean {
   return true;
 }
 
+// Per-IP submit-cooldown (separate from the burst rate limit above).
+// Rejects any submit that comes <30s after the previous one from the same IP.
+const lastSubmit = new Map<string, number>();
+const SUBMIT_COOLDOWN_MS = 30_000;
+const SUBMIT_MAP_LIMIT = 1000;
+
+function checkSubmitCooldown(ip: string): boolean {
+  const now = Date.now();
+  const last = lastSubmit.get(ip);
+  if (last && now - last < SUBMIT_COOLDOWN_MS) return false;
+
+  // purge oldest when full
+  if (lastSubmit.size >= SUBMIT_MAP_LIMIT && !lastSubmit.has(ip)) {
+    const oldestKey = lastSubmit.keys().next().value;
+    if (oldestKey !== undefined) lastSubmit.delete(oldestKey);
+  }
+  lastSubmit.set(ip, now);
+  return true;
+}
+
+const GENERIC_REJECT = "Could not send — try again later";
+
 type ContactDetailInput = {
   type: string;
   value: string;
@@ -43,19 +65,43 @@ export type SendContactInput = {
   name: string;
   message: string;
   contacts: ContactDetailInput[];
+  /** Honeypot field — bots fill it, humans don't. Non-empty => silently drop. */
+  website?: string;
 };
 
 export async function sendChatMessage(
   input: SendContactInput,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Honeypot — if filled, pretend success but never store.
+  if (input.website && input.website.trim().length > 0) {
+    return { ok: true };
+  }
+
   const h = await headers();
   const ip =
-    h.get("x-forwarded-for")?.split(",")[0].trim() ||
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     h.get("x-real-ip") ||
     "unknown";
 
+  if (!checkSubmitCooldown(ip)) {
+    return { ok: false, error: GENERIC_REJECT };
+  }
+
   if (!rateLimit(ip)) {
     return { ok: false, error: "Too many attempts. Try again in a minute." };
+  }
+
+  // Hard length cap (defence-in-depth on top of zod's max(5000)).
+  if (typeof input.message === "string" && input.message.length > 5000) {
+    return { ok: false, error: GENERIC_REJECT };
+  }
+
+  // Bare-URL spam heuristic — 4+ links in one message is almost always spam.
+  if (typeof input.message === "string") {
+    const urlMatches = input.message.match(/https?:\/\//gi);
+    if (urlMatches && urlMatches.length >= 4) {
+      return { ok: false, error: GENERIC_REJECT };
+    }
   }
 
   const parsed = schema.safeParse(input);
@@ -103,9 +149,11 @@ export async function sendContactMessage(
   const name = String(formData.get("name") ?? "");
   const email = String(formData.get("email") ?? "");
   const message = String(formData.get("message") ?? "");
+  const website = String(formData.get("website") ?? "");
   return sendChatMessage({
     name,
     message,
     contacts: email ? [{ type: "mail", value: email }] : [],
+    website,
   });
 }

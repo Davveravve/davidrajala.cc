@@ -10,6 +10,7 @@ import { useChat } from "@/components/chat/chat-context";
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/projects", label: "Projects" },
+  { href: "/gallery", label: "Gallery" },
   { href: "/about", label: "About" },
 ];
 

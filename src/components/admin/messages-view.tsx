@@ -13,11 +13,15 @@ import {
   Inbox,
   ArrowLeft,
   Copy,
+  CheckSquare,
+  X,
 } from "lucide-react";
 import {
   markMessageRead,
   setMessageSaved,
   deleteMessage,
+  markMessagesRead,
+  deleteMessages,
 } from "@/app/_actions/messages";
 import { ConfirmDialog } from "./confirm-dialog";
 import { getContactMeta } from "@/lib/contact-types";
@@ -52,7 +56,24 @@ export function MessagesView({
     messages[0]?.id ?? null,
   );
   const [pendingDelete, setPendingDelete] = useState<Msg | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [bulkIds, setBulkIds] = useState<Set<string>>(new Set());
+  const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
   const [, startTransition] = useTransition();
+
+  function exitSelect() {
+    setSelectMode(false);
+    setBulkIds(new Set());
+  }
+
+  function toggleId(id: string) {
+    setBulkIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   // sync selected when messages change
   useEffect(() => {
@@ -79,6 +100,8 @@ export function MessagesView({
   const showList = !selectedId;
   const showConvo = !!selectedId;
 
+  const ids = Array.from(bulkIds);
+
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5 min-h-[60vh]">
@@ -87,13 +110,49 @@ export function MessagesView({
             showList ? "block" : "hidden lg:block"
           }`}
         >
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface-2)]/40">
+            {selectMode ? (
+              <>
+                <span className="text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
+                  {bulkIds.size} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={exitSelect}
+                  className="text-[11px] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] inline-flex items-center gap-1.5"
+                >
+                  <X size={12} />
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
+                  {messages.length} message{messages.length === 1 ? "" : "s"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectMode(true)}
+                  className="text-[11px] text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] inline-flex items-center gap-1.5"
+                >
+                  <CheckSquare size={12} />
+                  Select
+                </button>
+              </>
+            )}
+          </div>
           <ul className="divide-y divide-[var(--color-border)] max-h-[70vh] overflow-y-auto">
             {messages.map((m) => (
               <ListItem
                 key={m.id}
                 msg={m}
                 active={m.id === selectedId}
-                onClick={() => setSelectedId(m.id)}
+                selectMode={selectMode}
+                checked={bulkIds.has(m.id)}
+                onClick={() => {
+                  if (selectMode) toggleId(m.id);
+                  else setSelectedId(m.id);
+                }}
               />
             ))}
           </ul>
@@ -134,6 +193,58 @@ export function MessagesView({
         </section>
       </div>
 
+      {selectMode && bulkIds.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
+          <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)]/95 backdrop-blur-md px-3 py-2 shadow-2xl">
+            <span className="px-3 text-[12px] text-[var(--color-fg-muted)] tabular-nums">
+              {bulkIds.size} selected
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                startTransition(async () => {
+                  await markMessagesRead(ids, true);
+                  exitSelect();
+                })
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface-2)] transition-colors"
+            >
+              <CheckCheck size={13} />
+              Mark read
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                startTransition(async () => {
+                  await markMessagesRead(ids, false);
+                  exitSelect();
+                })
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface-2)] transition-colors"
+            >
+              <Mail size={13} />
+              Mark unread
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingBulkDelete(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              <Trash2 size={13} />
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={exitSelect}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface-2)] transition-colors"
+            >
+              <X size={13} />
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog
         open={pendingDelete !== null}
         title="Delete message"
@@ -151,6 +262,20 @@ export function MessagesView({
           setPendingDelete(null);
         }}
       />
+
+      <ConfirmDialog
+        open={pendingBulkDelete}
+        title="Delete messages"
+        description={`Delete ${bulkIds.size} selected message${bulkIds.size === 1 ? "" : "s"}? This cannot be undone.`}
+        confirmLabel="Delete"
+        destructive
+        onCancel={() => setPendingBulkDelete(false)}
+        onConfirm={async () => {
+          await deleteMessages(ids);
+          setPendingBulkDelete(false);
+          exitSelect();
+        }}
+      />
     </>
   );
 }
@@ -158,10 +283,14 @@ export function MessagesView({
 function ListItem({
   msg,
   active,
+  selectMode,
+  checked,
   onClick,
 }: {
   msg: Msg;
   active: boolean;
+  selectMode: boolean;
+  checked: boolean;
   onClick: () => void;
 }) {
   const initial = msg.name.trim()[0]?.toUpperCase() ?? "?";
@@ -173,11 +302,27 @@ function ListItem({
         type="button"
         onClick={onClick}
         className={`w-full text-left px-4 py-4 flex gap-3 items-start transition-colors ${
-          active
-            ? "bg-[var(--color-surface-2)] border-l-2 border-l-[var(--color-accent)]"
-            : "hover:bg-[var(--color-surface-2)] border-l-2 border-l-transparent"
+          selectMode
+            ? checked
+              ? "bg-[var(--color-accent)]/8 border-l-2 border-l-[var(--color-accent)]"
+              : "hover:bg-[var(--color-surface-2)] border-l-2 border-l-transparent"
+            : active
+              ? "bg-[var(--color-surface-2)] border-l-2 border-l-[var(--color-accent)]"
+              : "hover:bg-[var(--color-surface-2)] border-l-2 border-l-transparent"
         }`}
       >
+        {selectMode && (
+          <span
+            className={`mt-1 flex h-4 w-4 items-center justify-center rounded border flex-shrink-0 transition-colors ${
+              checked
+                ? "bg-[var(--color-accent)] border-[var(--color-accent)] text-[var(--color-bg)]"
+                : "border-[var(--color-border)] bg-[var(--color-bg)]"
+            }`}
+            aria-hidden
+          >
+            {checked && <Check size={11} strokeWidth={3} />}
+          </span>
+        )}
         <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-sm font-medium flex-shrink-0">
           {initial}
           {!msg.read && (

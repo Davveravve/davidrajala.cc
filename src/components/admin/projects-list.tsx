@@ -31,6 +31,21 @@ type AdminProject = {
   categoryName: string | null;
   featured: boolean;
   published: boolean;
+  status: string;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  live: "Live",
+  wip: "WIP",
+  archived: "Archived",
+  oss: "Open source",
+};
+
+const STATUS_CLASSES: Record<string, string> = {
+  live: "bg-[var(--color-accent)]/10 text-[var(--color-accent)]",
+  wip: "bg-orange-500/10 text-orange-300",
+  archived: "bg-[var(--color-surface-2)] text-[var(--color-fg-muted)]",
+  oss: "bg-green-500/10 text-green-300",
 };
 
 export function ProjectsAdminList({ projects }: { projects: AdminProject[] }) {
@@ -193,6 +208,13 @@ function SortableRow({
           {project.featured && (
             <Star size={12} className="text-[var(--color-accent)] flex-shrink-0" fill="currentColor" />
           )}
+          <span
+            className={`text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded ${
+              STATUS_CLASSES[project.status] ?? STATUS_CLASSES.live
+            }`}
+          >
+            {STATUS_LABELS[project.status] ?? project.status}
+          </span>
           {!project.published && (
             <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--color-fg-dim)] border border-[var(--color-border)] px-1.5 py-0.5 rounded">
               draft

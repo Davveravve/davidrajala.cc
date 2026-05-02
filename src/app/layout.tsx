@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ScrollProgress } from "@/components/scroll-progress";
+import { MagneticCursor } from "@/components/magnetic-cursor";
+import { TopLoadingBar } from "@/components/top-loading-bar";
 import { ChatProvider } from "@/components/chat/chat-context";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { getAboutMe, getSiteSettings } from "@/lib/queries";
@@ -56,10 +58,15 @@ export default async function RootLayout({
         <style dangerouslySetInnerHTML={{ __html: themeStyle }} />
       </head>
       <body className="antialiased">
+        <div className="bg-grain" aria-hidden />
         <ChatProvider>
           <ScrollProgress />
+          <TopLoadingBar />
+          <MagneticCursor />
           <SiteHeader />
-          <main className="relative">{children}</main>
+          <main className="relative" style={{ viewTransitionName: "page" }}>
+            {children}
+          </main>
           <SiteFooter
             about={{
               email: about.email,

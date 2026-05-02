@@ -3,8 +3,11 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Github, Globe } from "lucide-react";
 import { getAllProjectSlugs, getProjectBySlug } from "@/lib/queries";
 import { parseList } from "@/lib/queries";
+import { prisma } from "@/lib/prisma";
 import { Reveal } from "@/components/ui/reveal";
 import { ProjectGallery, ProjectCover } from "@/components/project/project-gallery";
+import { BeforeAfterSlider } from "@/components/project/before-after-slider";
+import { ProjectCard } from "@/components/sections/featured-projects";
 
 export async function generateStaticParams() {
   const slugs = await getAllProjectSlugs();
@@ -39,7 +42,47 @@ export default async function ProjectDetailPage({
   const project = await getProjectBySlug(slug);
   if (!project) notFound();
 
+  // Increment view counter (fire-and-forget — never block render).
+  await prisma.project
+    .update({ where: { id: project.id }, data: { viewCount: { increment: 1 } } })
+    .catch(() => {});
+
   const tech = parseList(project.techStack);
+
+  // Case study sub-blocks — only render those with content.
+  const caseBlocks = [
+    { label: "Challenge", text: project.caseChallenge },
+    { label: "Process", text: project.caseProcess },
+    { label: "Outcome", text: project.caseOutcome },
+    { label: "Lessons learned", text: project.caseLessons },
+  ].filter((b) => b.text && b.text.trim().length > 0);
+
+  // Related projects: prefer same category, then top up with most-recent overall.
+  const sameCategory = await prisma.project.findMany({
+    where: {
+      published: true,
+      id: { not: project.id },
+      ...(project.categoryId ? { categoryId: project.categoryId } : {}),
+    },
+    include: { category: true },
+    orderBy: { order: "asc" },
+    take: 3,
+  });
+
+  let related = sameCategory;
+  if (related.length < 3) {
+    const excludeIds = [project.id, ...related.map((p) => p.id)];
+    const fillers = await prisma.project.findMany({
+      where: {
+        published: true,
+        id: { notIn: excludeIds },
+      },
+      include: { category: true },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      take: 3 - related.length,
+    });
+    related = [...related, ...fillers];
+  }
 
   return (
     <article className="relative">
@@ -137,6 +180,15 @@ export default async function ProjectDetailPage({
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] mb-3">
+                    Stats
+                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg)]">
+                    {project.viewCount.toLocaleString()} views
+                  </div>
+                </div>
               </div>
             </aside>
           </div>
@@ -168,6 +220,50 @@ export default async function ProjectDetailPage({
         </section>
       )}
 
+      {/* case study */}
+      {project.hasCaseStudy && caseBlocks.length > 0 && (
+        <section className="relative pb-24">
+          <div className="container-page">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-14">
+              {caseBlocks.map((block, i) => (
+                <Reveal key={block.label} delay={i * 0.05}>
+                  <div className="max-w-xl">
+                    <div className="text-[10px] uppercase tracking-[0.12em] font-medium text-[var(--color-accent)] mb-4">
+                      {block.label}
+                    </div>
+                    <div className="prose prose-invert max-w-none">
+                      {block.text.split("\n\n").map((para, j) => (
+                        <p
+                          key={j}
+                          className="text-base md:text-lg text-[var(--color-fg-muted)] leading-relaxed mb-4 text-pretty"
+                        >
+                          {para}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* before/after slider */}
+      {project.beforeUrl && project.afterUrl && (
+        <section className="relative pb-24">
+          <div className="container-page">
+            <Reveal>
+              <BeforeAfterSlider
+                before={project.beforeUrl}
+                after={project.afterUrl}
+                alt={project.title}
+              />
+            </Reveal>
+          </div>
+        </section>
+      )}
+
       {/* gallery */}
       {project.images.length > 0 && (
         <section className="relative pb-32">
@@ -184,25 +280,31 @@ export default async function ProjectDetailPage({
         </section>
       )}
 
-      {/* next CTA */}
+      {/* related projects */}
+      {related.length > 0 && (
+        <section className="relative pb-20">
+          <div className="container-page">
+            <div className="text-[11px] uppercase tracking-[0.12em] font-medium text-[var(--color-fg-muted)] mb-8">
+              Next projects
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {related.map((p) => (
+                <ProjectCard key={p.id} project={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* secondary all-projects link */}
       <section className="relative pb-32">
         <div className="container-page">
           <Link
             href="/projects"
-            className="group flex items-center justify-between gap-6 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 md:p-12 hover:border-[var(--color-accent)] transition-colors"
+            className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.08em] font-medium text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] transition-colors group"
           >
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] mb-2">
-                Back to
-              </div>
-              <div className="font-display text-3xl md:text-5xl font-medium tracking-tight">
-                All projects
-              </div>
-            </div>
-            <ArrowUpRight
-              size={32}
-              className="text-[var(--color-fg-muted)] group-hover:text-[var(--color-accent)] group-hover:rotate-45 transition-all duration-500"
-            />
+            All projects
+            <ArrowUpRight size={14} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         </div>
       </section>

@@ -40,6 +40,7 @@ export default async function AdminProjects() {
           categoryName: p.category?.name ?? null,
           featured: p.featured,
           published: p.published,
+          status: p.status,
         }))}
       />
     </div>

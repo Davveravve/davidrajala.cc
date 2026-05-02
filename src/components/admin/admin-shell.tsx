@@ -17,15 +17,19 @@ import {
   X,
   Settings as SettingsIcon,
   Layout,
+  Image as ImageIcon,
+  Activity,
 } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/site-editor", label: "Site", icon: Layout },
   { href: "/admin/projects", label: "Projects", icon: FolderKanban },
+  { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/about", label: "About", icon: User },
   { href: "/admin/messages", label: "Messages", icon: Mail },
+  { href: "/admin/activity", label: "Activity", icon: Activity },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 

@@ -11,6 +11,7 @@ const config: NextConfig = {
     ],
   },
   experimental: {
+    viewTransition: true,
     serverActions: {
       bodySizeLimit: "120mb",
     },
