@@ -52,12 +52,10 @@ export function ProjectCard({
   large?: boolean;
 }) {
   return (
-    <Reveal>
+    <Reveal className={large ? "md:col-span-2" : "h-full"}>
       <Link
         href={`/projects/${project.slug}`}
-        className={`group relative block overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-500 hover:border-[var(--color-accent)] hover:shadow-[0_0_40px_var(--color-accent-glow)] ${
-          large ? "md:col-span-2" : ""
-        }`}
+        className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-colors duration-300 hover:border-[var(--color-accent)]"
       >
         <div className={`relative overflow-hidden ${large ? "aspect-[16/9]" : "aspect-[4/3]"}`}>
           <Image
@@ -73,7 +71,7 @@ export function ProjectCard({
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--color-accent)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
 
-        <div className="p-5 md:p-8">
+        <div className="flex flex-1 flex-col p-5 md:p-8">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
               {project.category && (

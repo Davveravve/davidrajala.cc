@@ -4,7 +4,7 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { Reveal } from "@/components/ui/reveal";
 
 export const metadata = {
-  title: "Work — David Rajala",
+  title: "Projects — David Rajala",
   description: "A selection of projects I've worked on.",
 };
 
@@ -20,7 +20,7 @@ export default async function ProjectsPage() {
         <div className="absolute inset-0 bg-grid-fine opacity-40" aria-hidden />
         <div className="absolute inset-0 bg-radial-fade" aria-hidden />
         <div className="container-page relative">
-          <SectionLabel className="mb-6">Portfolio / Work</SectionLabel>
+          <SectionLabel className="mb-6">Portfolio / Projects</SectionLabel>
           <Reveal>
             <h1 className="font-display text-4xl sm:text-5xl md:text-8xl font-medium tracking-tight text-balance leading-[0.95]">
               Everything I&apos;ve <br />
