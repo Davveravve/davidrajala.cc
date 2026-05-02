@@ -88,6 +88,16 @@ model Customer {
   email        String   @unique
   passwordHash String
   name         String   @default("")
+  /// Optional socials — surfaced in chat as contact info so the admin
+  /// always has a way to reach back beyond email.
+  twitter      String   @default("")
+  github       String   @default("")
+  linkedin     String   @default("")
+  website      String   @default("")
+  /// Plain hex sha256 token + ISO expiry for password reset (set when
+  /// requesting reset, cleared on use).
+  resetToken     String?
+  resetExpiresAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   orders       Order[]
