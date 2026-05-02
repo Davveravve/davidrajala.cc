@@ -39,6 +39,8 @@ const projectSchema = z.object({
   caseLessons: z.string().max(20000).default(""),
   beforeUrl: z.string().url().optional().or(z.literal("")),
   afterUrl: z.string().url().optional().or(z.literal("")),
+  displayDate: z.string().optional().or(z.literal("")),
+  viewCount: z.coerce.number().int().min(0).max(9_999_999).default(200),
 });
 
 function fdToBool(v: FormDataEntryValue | null) {
@@ -79,6 +81,8 @@ export async function createProject(formData: FormData) {
     caseLessons: formData.get("caseLessons") ?? "",
     beforeUrl: formData.get("beforeUrl") ?? "",
     afterUrl: formData.get("afterUrl") ?? "",
+    displayDate: formData.get("displayDate") ?? "",
+    viewCount: formData.get("viewCount") ?? 200,
   });
 
   const slugBase = slugify(data.slug || data.title);
@@ -117,6 +121,8 @@ export async function createProject(formData: FormData) {
       caseLessons: data.caseLessons,
       beforeUrl: data.beforeUrl || null,
       afterUrl: data.afterUrl || null,
+      displayDate: data.displayDate ? new Date(data.displayDate) : null,
+      viewCount: data.viewCount,
       coverUrl,
       order,
     },
@@ -168,6 +174,8 @@ export async function updateProject(projectId: string, formData: FormData) {
     caseLessons: formData.get("caseLessons") ?? "",
     beforeUrl: formData.get("beforeUrl") ?? "",
     afterUrl: formData.get("afterUrl") ?? "",
+    displayDate: formData.get("displayDate") ?? "",
+    viewCount: formData.get("viewCount") ?? 200,
   });
 
   const existing = await prisma.project.findUnique({ where: { id: projectId } });
@@ -209,6 +217,8 @@ export async function updateProject(projectId: string, formData: FormData) {
       caseLessons: data.caseLessons,
       beforeUrl: data.beforeUrl || null,
       afterUrl: data.afterUrl || null,
+      displayDate: data.displayDate ? new Date(data.displayDate) : null,
+      viewCount: data.viewCount,
       coverUrl,
     },
   });

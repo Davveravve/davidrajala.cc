@@ -27,17 +27,59 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://davidrajala.cc";
+
 export const metadata: Metadata = {
-  title: "David Rajala — Full Stack Developer",
+  title: {
+    default: "David Rajala — Full Stack Developer",
+    template: "%s — David Rajala",
+  },
   description:
-    "Full Stack Developer based in Gothenburg. Building modern digital solutions focused on usability and forward-thinking tech.",
-  metadataBase: new URL("http://localhost:3000"),
+    "Full Stack Developer based in Gothenburg. Building modern digital products focused on usability and forward-thinking tech.",
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
+  applicationName: "David Rajala",
+  authors: [{ name: "David Rajala", url: SITE_URL }],
+  creator: "David Rajala",
+  keywords: [
+    "David Rajala",
+    "Full Stack Developer",
+    "Web Developer",
+    "Next.js",
+    "React",
+    "Node.js",
+    "3D",
+    "Blender",
+    "Unreal Engine",
+    "Gothenburg",
+    "Sweden",
+    "Portfolio",
+  ],
   openGraph: {
     title: "David Rajala — Full Stack Developer",
     description:
-      "Building modern digital solutions focused on usability and tech.",
+      "Full Stack Developer based in Gothenburg. Building modern digital products focused on usability and forward-thinking tech.",
+    url: SITE_URL,
+    siteName: "David Rajala",
     type: "website",
-    locale: "en",
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "David Rajala — Full Stack Developer",
+    description:
+      "Full Stack Developer based in Gothenburg.",
+    creator: "@davidrajala",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

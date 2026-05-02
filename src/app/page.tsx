@@ -10,6 +10,7 @@ import {
   getHomeSections,
   getSiteSettings,
 } from "@/lib/queries";
+import { PersonJsonLd, WebsiteJsonLd } from "@/components/json-ld";
 
 export default async function HomePage() {
   const [about, sections, settings] = await Promise.all([
@@ -38,6 +39,15 @@ export default async function HomePage() {
 
   return (
     <>
+      <PersonJsonLd
+        name={about.name}
+        role={about.role}
+        bio={about.bio}
+        email={about.email}
+        location={about.location}
+        avatarUrl={about.avatarUrl}
+      />
+      <WebsiteJsonLd name={about.name} />
       {visible.map((s) => {
         switch (s.type) {
           case "hero":

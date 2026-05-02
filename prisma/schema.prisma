@@ -54,7 +54,11 @@ model Project {
   beforeUrl   String?
   afterUrl    String?
 
-  viewCount   Int            @default(0)
+  /// Optional display date (e.g. "shipped on") — falls back to createdAt
+  /// in the UI when null. Lets the owner backdate or override the date.
+  displayDate DateTime?
+
+  viewCount   Int            @default(200)
 
   categoryId  String?
   category    Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)

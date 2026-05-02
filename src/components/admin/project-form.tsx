@@ -36,6 +36,8 @@ type ProjectInput = {
   caseLessons: string;
   beforeUrl: string | null;
   afterUrl: string | null;
+  displayDate: Date | string | null;
+  viewCount: number;
   images: ImageRow[];
 };
 
@@ -216,6 +218,20 @@ export function ProjectForm(props: Props) {
             name="repoUrl"
             defaultValue={project?.repoUrl ?? ""}
             placeholder="https://github.com/..."
+          />
+          <Field
+            label="Date (shipped / published)"
+            name="displayDate"
+            type="date"
+            defaultValue={toDateInput(project?.displayDate ?? new Date())}
+            help="Shown on the project page. Defaults to today on create."
+          />
+          <Field
+            label="Views"
+            name="viewCount"
+            type="number"
+            defaultValue={String(project?.viewCount ?? 200)}
+            help="Used as the public counter. Auto-increments on each visit."
           />
         </div>
         <div className="flex flex-wrap gap-4 pt-2">
@@ -431,6 +447,13 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
+function toDateInput(d: Date | string | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
 function Field({
   label,
   name,
@@ -439,6 +462,7 @@ function Field({
   required,
   help,
   as = "input",
+  type = "text",
   rows,
 }: {
   label: string;
@@ -448,6 +472,7 @@ function Field({
   required?: boolean;
   help?: string;
   as?: "input" | "textarea";
+  type?: string;
   rows?: number;
 }) {
   const cls =
@@ -470,6 +495,7 @@ function Field({
       ) : (
         <input
           name={name}
+          type={type}
           defaultValue={defaultValue ?? ""}
           placeholder={placeholder}
           required={required}

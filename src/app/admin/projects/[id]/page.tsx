@@ -61,6 +61,8 @@ export default async function EditProjectPage({
           caseLessons: project.caseLessons,
           beforeUrl: project.beforeUrl,
           afterUrl: project.afterUrl,
+          displayDate: project.displayDate,
+          viewCount: project.viewCount,
           images: project.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt })),
         }}
       />

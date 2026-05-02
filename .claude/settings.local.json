@@ -62,7 +62,12 @@
       "Bash(echo \"exit:$?\")",
       "Bash(git commit *)",
       "PowerShell(Get-CimInstance *)",
-      "PowerShell(Stop-Process *)"
+      "PowerShell(Stop-Process *)",
+      "Bash(ssh root@46.224.128.108 \"journalctl -u portfolio.service -n 80 --no-pager\")",
+      "Bash(curl -s -o /dev/null -w \"status:%{http_code}\\\\n\" https://davidrajala.cc/)",
+      "Bash(curl -s -o /dev/null -w \"admin status:%{http_code}\\\\n\" https://davidrajala.cc/admin/login)",
+      "Bash(curl -s https://davidrajala.cc/)",
+      "PowerShell(npx prisma db push 2>&1 | Select-Object -Last 3)"
     ]
   }
 }

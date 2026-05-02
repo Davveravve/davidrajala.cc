@@ -8,6 +8,8 @@ import { Reveal } from "@/components/ui/reveal";
 import { ProjectGallery, ProjectCover } from "@/components/project/project-gallery";
 import { BeforeAfterSlider } from "@/components/project/before-after-slider";
 import { ProjectCard } from "@/components/sections/featured-projects";
+import { ProjectJsonLd } from "@/components/json-ld";
+import { getAboutMe } from "@/lib/queries";
 
 export async function generateStaticParams() {
   const slugs = await getAllProjectSlugs();
@@ -22,10 +24,20 @@ export async function generateMetadata({
   const { slug } = await params;
   const project = await getProjectBySlug(slug);
   if (!project) return {};
+  const url = `/projects/${project.slug}`;
   return {
-    title: `${project.title} — David Rajala`,
+    title: project.title,
     description: project.summary,
+    alternates: { canonical: url },
     openGraph: {
+      title: project.title,
+      description: project.summary,
+      url,
+      type: "article",
+      images: [project.coverUrl],
+    },
+    twitter: {
+      card: "summary_large_image",
       title: project.title,
       description: project.summary,
       images: [project.coverUrl],
@@ -84,8 +96,19 @@ export default async function ProjectDetailPage({
     related = [...related, ...fillers];
   }
 
+  const about = await getAboutMe();
+
   return (
     <article className="relative">
+      <ProjectJsonLd
+        title={project.title}
+        summary={project.summary}
+        slug={project.slug}
+        coverUrl={project.coverUrl}
+        authorName={about.name}
+        datePublished={project.displayDate ?? project.createdAt}
+        dateModified={project.updatedAt}
+      />
       {/* hero */}
       <section className="relative pt-32 pb-16 overflow-hidden">
         <div className="absolute inset-0 bg-grid-fine opacity-30" aria-hidden />
@@ -185,8 +208,17 @@ export default async function ProjectDetailPage({
                   <div className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] mb-3">
                     Stats
                   </div>
-                  <div className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg)]">
-                    {project.viewCount.toLocaleString()} views
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg)]">
+                      {project.viewCount.toLocaleString()} views
+                    </div>
+                    <div className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
+                      Shipped{" "}
+                      {(project.displayDate ?? project.createdAt).toLocaleString("en-GB", {
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
