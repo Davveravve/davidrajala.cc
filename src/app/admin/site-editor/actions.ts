@@ -67,6 +67,87 @@ export async function reorderHomeSections(orderedIds: string[]) {
   revalidatePath("/admin/site-editor");
 }
 
+export async function addHomeSection(type: string) {
+  await ensureAdmin();
+  const valid = ["hero", "featured", "latest", "about", "contact"];
+  if (!valid.includes(type)) throw new Error("Invalid section type");
+  const last = await prisma.homeSection.aggregate({ _max: { order: true } });
+  const created = await prisma.homeSection.create({
+    data: { type, order: (last._max.order ?? -1) + 1 },
+  });
+  await logActivity("section.create", {
+    entityType: "section",
+    entityId: created.id,
+    label: type,
+  });
+  revalidatePath("/");
+  revalidatePath("/admin/site-editor");
+  return created.id;
+}
+
+export async function duplicateHomeSection(id: string) {
+  await ensureAdmin();
+  const original = await prisma.homeSection.findUnique({ where: { id } });
+  if (!original) throw new Error("Section not found");
+
+  // Insert directly after the original by shifting everything below it +1.
+  await prisma.$transaction([
+    prisma.homeSection.updateMany({
+      where: { order: { gt: original.order } },
+      data: { order: { increment: 1 } },
+    }),
+    prisma.homeSection.create({
+      data: {
+        type: original.type,
+        order: original.order + 1,
+        visible: original.visible,
+        eyebrow: original.eyebrow,
+        title: original.title,
+        titleMuted: original.titleMuted,
+        body: original.body,
+        ctaLabel: original.ctaLabel,
+        ctaHref: original.ctaHref,
+        projectId: original.projectId,
+      },
+    }),
+  ]);
+  await logActivity("section.duplicate", {
+    entityType: "section",
+    entityId: id,
+    label: original.type,
+  });
+  revalidatePath("/");
+  revalidatePath("/admin/site-editor");
+}
+
+export async function deleteHomeSection(id: string) {
+  await ensureAdmin();
+  const existing = await prisma.homeSection.findUnique({ where: { id } });
+  await prisma.homeSection.delete({ where: { id } });
+  await logActivity("section.delete", {
+    entityType: "section",
+    entityId: id,
+    label: existing?.type ?? "",
+  });
+  revalidatePath("/");
+  revalidatePath("/admin/site-editor");
+}
+
+export async function setHomeSectionProject(id: string, projectId: string | null) {
+  await ensureAdmin();
+  await prisma.homeSection.update({
+    where: { id },
+    data: { projectId },
+  });
+  await logActivity("section.update", {
+    entityType: "section",
+    entityId: id,
+    label: projectId ? "project bound" : "project unbound",
+  });
+  revalidatePath("/");
+  revalidatePath("/admin/site-editor");
+}
+
 export async function resetHomeSection(id: string) {
   await ensureAdmin();
   await prisma.homeSection.update({

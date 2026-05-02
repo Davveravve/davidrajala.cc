@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { getHomeSections, getSiteSettings } from "@/lib/queries";
 import { SiteEditor } from "@/components/admin/site-editor";
 
@@ -6,9 +7,14 @@ export const metadata = {
 };
 
 export default async function SiteEditorPage() {
-  const [sections, settings] = await Promise.all([
+  const [sections, settings, projects] = await Promise.all([
     getHomeSections(),
     getSiteSettings(),
+    prisma.project.findMany({
+      where: { published: true },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      select: { id: true, title: true, slug: true, coverUrl: true },
+    }),
   ]);
 
   return (
@@ -23,11 +29,11 @@ export default async function SiteEditorPage() {
         </h1>
         <p className="mt-2 text-sm text-[var(--color-fg-muted)] max-w-2xl">
           Toggle home page sections, reorder them, edit copy, change accent color and footer text.
-          All changes go live instantly.
+          Add or duplicate sections to feature multiple projects. All changes go live instantly.
         </p>
       </div>
 
-      <SiteEditor sections={sections} settings={settings} />
+      <SiteEditor sections={sections} settings={settings} projects={projects} />
     </div>
   );
 }

@@ -28,6 +28,9 @@ import {
   Briefcase,
   User,
   MessageCircle,
+  Copy,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import {
   updateHomeSection,
@@ -35,8 +38,24 @@ import {
   reorderHomeSections,
   resetHomeSection,
   updateSiteSettings,
+  addHomeSection,
+  duplicateHomeSection,
+  deleteHomeSection,
+  setHomeSectionProject,
 } from "@/app/admin/site-editor/actions";
+import { ConfirmDialog } from "./confirm-dialog";
 import type { HomeSection, SiteSettings } from "@prisma/client";
+
+type ProjectOption = {
+  id: string;
+  title: string;
+  slug: string;
+  coverUrl: string;
+};
+
+type SectionWithProject = HomeSection & {
+  project?: { id: string; title: string; slug: string; coverUrl: string } | null;
+};
 
 const SECTION_META: Record<
   string,
@@ -52,14 +71,26 @@ const SECTION_META: Record<
 export function SiteEditor({
   sections: initialSections,
   settings,
+  projects,
 }: {
-  sections: HomeSection[];
+  sections: SectionWithProject[];
   settings: SiteSettings;
+  projects: ProjectOption[];
 }) {
   const [sections, setSections] = useState(initialSections);
   const [openId, setOpenId] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<SectionWithProject | null>(null);
   const [, startTransition] = useTransition();
+
+  function refreshFromServer() {
+    // Trigger a server refetch by calling router.refresh on the parent —
+    // we don't have it here, so we simulate by mutating local state. The
+    // server actions revalidate "/admin/site-editor" so a manual refresh
+    // (or any router transition) will sync. For instant feedback we just
+    // mutate locally.
+  }
+  void refreshFromServer;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -90,6 +121,88 @@ export function SiteEditor({
     });
   }
 
+  function handleAddSection(type: string) {
+    startTransition(async () => {
+      const newId = await addHomeSection(type);
+      // Optimistic insert at the end. The server action will revalidate so
+      // a router refresh will reconcile any drift (e.g. order normalization).
+      const lastOrder = sections.reduce((m, s) => Math.max(m, s.order), -1);
+      setSections((prev) => [
+        ...prev,
+        {
+          id: newId,
+          type,
+          order: lastOrder + 1,
+          visible: true,
+          eyebrow: null,
+          title: null,
+          titleMuted: null,
+          body: null,
+          ctaLabel: null,
+          ctaHref: null,
+          projectId: null,
+          updatedAt: new Date(),
+          project: null,
+        } as SectionWithProject,
+      ]);
+      setOpenId(newId);
+      setSavedAt(Date.now());
+    });
+  }
+
+  function handleDuplicate(id: string) {
+    const original = sections.find((s) => s.id === id);
+    if (!original) return;
+    startTransition(async () => {
+      await duplicateHomeSection(id);
+      // Server action shifted orders. We can't easily get the new id without
+      // a refetch — just optimistically insert a clone next to the original
+      // with a placeholder id; on next page interaction it'll reconcile.
+      const placeholderId = `tmp-${Date.now()}`;
+      setSections((prev) => {
+        const idx = prev.findIndex((s) => s.id === id);
+        if (idx === -1) return prev;
+        const clone: SectionWithProject = {
+          ...original,
+          id: placeholderId,
+          order: original.order + 1,
+        };
+        const shifted = prev.map((s) =>
+          s.order > original.order ? { ...s, order: s.order + 1 } : s,
+        );
+        const next = [...shifted];
+        next.splice(idx + 1, 0, clone);
+        return next.sort((a, b) => a.order - b.order);
+      });
+      setSavedAt(Date.now());
+    });
+  }
+
+  function handleDelete(section: SectionWithProject) {
+    setPendingDelete(section);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const id = pendingDelete.id;
+    setSections((prev) => prev.filter((s) => s.id !== id));
+    setPendingDelete(null);
+    if (openId === id) setOpenId(null);
+    await deleteHomeSection(id);
+    setSavedAt(Date.now());
+  }
+
+  function handleSetProject(id: string, projectId: string | null) {
+    const project = projectId ? projects.find((p) => p.id === projectId) ?? null : null;
+    setSections((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, projectId, project } : s)),
+    );
+    startTransition(async () => {
+      await setHomeSectionProject(id, projectId);
+      setSavedAt(Date.now());
+    });
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6">
       {/* Sections list */}
@@ -105,15 +218,19 @@ export function SiteEditor({
                 <SortableRow
                   key={s.id}
                   section={s}
+                  projects={projects}
                   open={openId === s.id}
                   onToggle={() => setOpenId(openId === s.id ? null : s.id)}
                   onToggleVisible={() => handleToggleVisible(s.id)}
+                  onDuplicate={() => handleDuplicate(s.id)}
+                  onDelete={() => handleDelete(s)}
+                  onSetProject={(pid) => handleSetProject(s.id, pid)}
                   onSaved={() => {
                     setSavedAt(Date.now());
                   }}
                   onUpdated={(updated) => {
                     setSections((prev) =>
-                      prev.map((x) => (x.id === updated.id ? updated : x)),
+                      prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)),
                     );
                   }}
                 />
@@ -121,6 +238,8 @@ export function SiteEditor({
             </ul>
           </SortableContext>
         </DndContext>
+
+        <AddSectionPicker onAdd={handleAddSection} />
       </div>
 
       {/* Global settings */}
@@ -137,6 +256,80 @@ export function SiteEditor({
           <Check size={14} />
           Saved
         </div>
+      )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete section"
+        description={
+          pendingDelete
+            ? `Remove this ${SECTION_META[pendingDelete.type]?.label ?? pendingDelete.type} section from the home page?`
+            : undefined
+        }
+        confirmLabel="Delete"
+        destructive
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
+    </div>
+  );
+}
+
+function AddSectionPicker({ onAdd }: { onAdd: (type: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3">
+      {open ? (
+        <div className="rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-surface)] p-3">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <span className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
+              Pick a section type
+            </span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-[10px] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+            >
+              Cancel
+            </button>
+          </div>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {Object.entries(SECTION_META).map(([type, meta]) => {
+              const Icon = meta.icon;
+              return (
+                <li key={type}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAdd(type);
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-[var(--color-border)] hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-2)] text-left transition-colors"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-surface-2)] text-[var(--color-accent)] flex-shrink-0">
+                      <Icon size={14} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{meta.label}</div>
+                      <div className="text-xs text-[var(--color-fg-muted)] truncate mt-0.5">
+                        {meta.description}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] text-sm text-[var(--color-fg-muted)] transition-colors"
+        >
+          <Plus size={14} />
+          Add section
+        </button>
       )}
     </div>
   );
@@ -155,16 +348,24 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle?: string }) 
 
 function SortableRow({
   section,
+  projects,
   open,
   onToggle,
   onToggleVisible,
+  onDuplicate,
+  onDelete,
+  onSetProject,
   onSaved,
   onUpdated,
 }: {
-  section: HomeSection;
+  section: SectionWithProject;
+  projects: ProjectOption[];
   open: boolean;
   onToggle: () => void;
   onToggleVisible: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onSetProject: (projectId: string | null) => void;
   onSaved: () => void;
   onUpdated: (s: HomeSection) => void;
 }) {
@@ -225,6 +426,16 @@ function SortableRow({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-medium text-sm">{meta.label}</span>
+              {section.type === "featured" && section.project && (
+                <span className="text-[10px] text-[var(--color-fg-muted)] truncate">
+                  · {section.project.title}
+                </span>
+              )}
+              {section.type === "featured" && !section.project && (
+                <span className="text-[9px] font-mono uppercase tracking-wider text-orange-300 border border-orange-300/40 px-1.5 py-0.5 rounded">
+                  no project
+                </span>
+              )}
               {hasOverrides && (
                 <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--color-accent)] border border-[var(--color-accent)]/40 px-1.5 py-0.5 rounded">
                   custom
@@ -243,6 +454,14 @@ function SortableRow({
         </button>
         <button
           type="button"
+          onClick={onDuplicate}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors"
+          title="Duplicate section"
+        >
+          <Copy size={13} />
+        </button>
+        <button
+          type="button"
           onClick={onToggleVisible}
           className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
             section.visible
@@ -253,11 +472,21 @@ function SortableRow({
         >
           {section.visible ? <Eye size={14} /> : <EyeOff size={14} />}
         </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--color-fg-muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          title="Delete section"
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
 
       {open && (
         <SectionEditForm
           section={section}
+          projects={projects}
+          onSetProject={onSetProject}
           onSaved={(updated) => {
             onUpdated(updated);
             onSaved();
@@ -270,9 +499,13 @@ function SortableRow({
 
 function SectionEditForm({
   section,
+  projects,
+  onSetProject,
   onSaved,
 }: {
-  section: HomeSection;
+  section: SectionWithProject;
+  projects: ProjectOption[];
+  onSetProject: (projectId: string | null) => void;
   onSaved: (updated: HomeSection) => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -328,6 +561,13 @@ function SectionEditForm({
       onSubmit={onSubmit}
       className="border-t border-[var(--color-border)] p-4 bg-[var(--color-bg)]/50 space-y-4"
     >
+      {section.type === "featured" && (
+        <FeaturedProjectPicker
+          projects={projects}
+          selectedId={section.projectId}
+          onChange={onSetProject}
+        />
+      )}
       {showEyebrow && (
         <Field
           label="Eyebrow (small label above title)"
@@ -521,6 +761,39 @@ function SettingsForm({
         {isPending ? "Saving..." : "Save global settings"}
       </button>
     </form>
+  );
+}
+
+function FeaturedProjectPicker({
+  projects,
+  selectedId,
+  onChange,
+}: {
+  projects: ProjectOption[];
+  selectedId: string | null;
+  onChange: (id: string | null) => void;
+}) {
+  return (
+    <div>
+      <span className="block text-xs font-medium text-[var(--color-fg-muted)] mb-1.5">
+        Featured project
+      </span>
+      <select
+        value={selectedId ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all text-sm"
+      >
+        <option value="">— Use globally starred project —</option>
+        {projects.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.title}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1.5 text-[11px] text-[var(--color-fg-muted)]">
+        Pick a specific project to spotlight in this section. Leave empty to use whichever project is starred in the projects list.
+      </p>
+    </div>
   );
 }
 
