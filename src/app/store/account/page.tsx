@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { customerLogoutAction } from "@/app/store/_actions";
 import { formatPrice } from "@/lib/format-price";
+import { signDownloadToken, MAX_DOWNLOADS } from "@/lib/download-tokens";
 
 export const metadata = { title: "Your account" };
 
@@ -23,9 +24,17 @@ export default async function StoreAccountPage() {
   });
 
   const paidOrders = orders.filter((o) => o.status === "paid");
-  const downloads = paidOrders
-    .flatMap((o) => o.items.map((i) => ({ order: o, item: i })))
-    .filter((d) => d.item.product?.fileUrl);
+  const downloadEntries = await Promise.all(
+    paidOrders
+      .flatMap((o) => o.items.map((i) => ({ order: o, item: i })))
+      .filter(
+        (d) => d.item.fileUrlSnapshot || d.item.product?.fileUrl,
+      )
+      .map(async (d) => ({
+        ...d,
+        token: await signDownloadToken(d.item.id, customer.id),
+      })),
+  );
 
   return (
     <section className="relative pt-32 pb-32">
@@ -51,39 +60,49 @@ export default async function StoreAccountPage() {
           </form>
         </div>
 
-        <Section title="Downloads" subtitle={`${downloads.length} available`}>
-          {downloads.length === 0 ? (
+        <Section title="Downloads" subtitle={`${downloadEntries.length} available`}>
+          {downloadEntries.length === 0 ? (
             <Empty
               text="No downloads yet."
               cta={{ href: "/store", label: "Browse store" }}
             />
           ) : (
             <ul className="grid grid-cols-1 gap-3">
-              {downloads.map(({ order, item }) => (
-                <li
-                  key={item.id}
-                  className="flex items-center gap-4 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm">
-                      {item.product?.title ?? "Product"}
-                    </div>
-                    <div className="text-xs text-[var(--color-fg-muted)] mt-0.5">
-                      Bought {new Date(order.createdAt).toLocaleDateString("en-GB")}
-                      {item.fileNameSnapshot && ` · ${item.fileNameSnapshot}`}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--color-border)] text-xs text-[var(--color-fg-muted)] disabled:cursor-not-allowed"
-                    title="Download endpoint enabled once Stripe is configured"
+              {downloadEntries.map(({ order, item, token }) => {
+                const remaining = Math.max(0, MAX_DOWNLOADS - item.downloadCount);
+                return (
+                  <li
+                    key={item.id}
+                    className="flex items-center gap-4 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
                   >
-                    <Download size={12} />
-                    Download
-                  </button>
-                </li>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">
+                        {item.product?.title ?? "Product"}
+                      </div>
+                      <div className="text-xs text-[var(--color-fg-muted)] mt-0.5">
+                        Bought {new Date(order.createdAt).toLocaleDateString("en-GB")}
+                        {item.fileNameSnapshot && ` · ${item.fileNameSnapshot}`}
+                        {" · "}
+                        {remaining}/{MAX_DOWNLOADS} downloads left
+                      </div>
+                    </div>
+                    {remaining > 0 ? (
+                      <a
+                        href={`/api/store/download/${token}`}
+                        download
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] text-xs font-medium hover:shadow-[0_0_24px_var(--color-accent-glow)] transition-shadow"
+                      >
+                        <Download size={12} />
+                        Download
+                      </a>
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-wider text-[var(--color-fg-muted)] px-3 py-1 rounded-full border border-[var(--color-border)]">
+                        Limit reached
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Section>

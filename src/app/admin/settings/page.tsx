@@ -1,10 +1,19 @@
 import Link from "next/link";
-import { Download, User, Tag, Mail, ArrowUpRight } from "lucide-react";
+import {
+  Download,
+  User,
+  Tag,
+  Mail,
+  ArrowUpRight,
+  CreditCard,
+} from "lucide-react";
 import { getNotificationSettings } from "@/lib/telegram";
 import { NotificationsForm } from "@/components/admin/notifications-form";
+import { getStripeAdminView } from "@/lib/stripe-config";
 
 export default async function AdminSettingsPage() {
   const settings = await getNotificationSettings();
+  const stripe = await getStripeAdminView();
 
   return (
     <div className="container-page max-w-3xl py-8 md:py-12">
@@ -19,10 +28,20 @@ export default async function AdminSettingsPage() {
 
       <section className="mb-12">
         <h2 className="font-display text-lg font-medium mb-4">Quick links</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <QuickLink href="/admin/about" label="Profile / About" icon={User} />
           <QuickLink href="/admin/categories" label="Project categories" icon={Tag} />
           <QuickLink href="/admin/messages" label="Messages inbox" icon={Mail} />
+          <QuickLink
+            href="/admin/settings/stripe"
+            label={
+              stripe.enabled
+                ? `Stripe — ${stripe.mode} mode`
+                : "Stripe — not enabled"
+            }
+            icon={CreditCard}
+            highlight={stripe.enabled}
+          />
         </div>
       </section>
 
@@ -71,15 +90,21 @@ function QuickLink({
   href,
   label,
   icon: Icon,
+  highlight,
 }: {
   href: string;
   label: string;
   icon: React.ComponentType<{ size?: number }>;
+  highlight?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="group flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 hover:border-[var(--color-accent)]/50 transition-colors"
+      className={`group flex items-center gap-3 rounded-xl border p-4 transition-colors ${
+        highlight
+          ? "border-[var(--color-accent)]/40 bg-[var(--color-accent)]/5 hover:border-[var(--color-accent)]"
+          : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)]/50"
+      }`}
     >
       <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-surface-2)] text-[var(--color-accent)]">
         <Icon size={14} />

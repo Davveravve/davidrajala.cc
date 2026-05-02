@@ -158,6 +158,24 @@ model OrderItem {
   @@index([productId])
 }
 
+/// Stripe configuration. Secret + webhook secret are AES-GCM encrypted with
+/// a key derived from AUTH_SECRET, so a leaked database alone doesn't
+/// expose payment credentials.
+model StripeSettings {
+  id                       String   @id @default("singleton")
+  enabled                  Boolean  @default(false)
+  /// "test" | "live"
+  mode                     String   @default("test")
+  publishableKey           String   @default("")
+  encryptedSecretKey       String   @default("")
+  encryptedWebhookSecret   String   @default("")
+  /// Where customers land after a successful checkout (relative path).
+  successPath              String   @default("/store/checkout/success")
+  /// Where customers land if they cancel (relative path).
+  cancelPath               String   @default("/store")
+  updatedAt                DateTime @updatedAt @default(now())
+}
+
 /// Append-only audit trail of admin actions for the activity feed.
 model ActivityLog {
   id         String   @id @default(cuid())
