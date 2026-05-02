@@ -37,12 +37,19 @@ const productSchema = z.object({
   summary: z.string().max(400).default(""),
   description: z.string().max(20000).default(""),
   category: z.enum(["game", "asset", "program", "other"]).default("other"),
-  price: z.coerce.number().int().min(0).max(999_999_99).default(0),
-  currency: z.string().min(3).max(3).default("SEK"),
+  /// Price in MAJOR units (4.99 dollars), converted to cents below.
+  priceMajor: z.coerce.number().min(0).max(999_999).default(0),
   externalUrl: z.string().url().optional().or(z.literal("")),
   published: z.boolean().default(true),
   featured: z.boolean().default(false),
 });
+
+const STORE_CURRENCY = "USD";
+
+/// Convert "4.99" → 499 cents. Avoids float drift via Math.round.
+function toCents(major: number): number {
+  return Math.max(0, Math.round(major * 100));
+}
 
 function fdToBool(v: FormDataEntryValue | null) {
   return v === "on" || v === "true" || v === "1";
@@ -56,8 +63,7 @@ export async function createStoreProduct(formData: FormData) {
     summary: formData.get("summary") ?? "",
     description: formData.get("description") ?? "",
     category: formData.get("category") ?? "other",
-    price: formData.get("price") ?? 0,
-    currency: formData.get("currency") ?? "SEK",
+    priceMajor: formData.get("priceMajor") ?? 0,
     externalUrl: formData.get("externalUrl") ?? "",
     published: fdToBool(formData.get("published")),
     featured: fdToBool(formData.get("featured")),
@@ -77,7 +83,7 @@ export async function createStoreProduct(formData: FormData) {
   let fileName = "";
   let fileSize = 0;
   if (file && file.size > 0) {
-    fileUrl = await saveUploadedFile(file, "store");
+    fileUrl = await saveUploadedFile(file, "store", "any");
     fileName = file.name;
     fileSize = file.size;
   }
@@ -92,8 +98,8 @@ export async function createStoreProduct(formData: FormData) {
       summary: data.summary,
       description: data.description,
       category: data.category,
-      price: data.price,
-      currency: data.currency.toUpperCase(),
+      price: toCents(data.priceMajor),
+      currency: STORE_CURRENCY,
       externalUrl: data.externalUrl || null,
       published: data.published,
       featured: data.featured,
@@ -124,8 +130,7 @@ export async function updateStoreProduct(id: string, formData: FormData) {
     summary: formData.get("summary") ?? "",
     description: formData.get("description") ?? "",
     category: formData.get("category") ?? "other",
-    price: formData.get("price") ?? 0,
-    currency: formData.get("currency") ?? "SEK",
+    priceMajor: formData.get("priceMajor") ?? 0,
     externalUrl: formData.get("externalUrl") ?? "",
     published: fdToBool(formData.get("published")),
     featured: fdToBool(formData.get("featured")),
@@ -154,7 +159,7 @@ export async function updateStoreProduct(id: string, formData: FormData) {
   let fileSize = existing.fileSize;
   const file = formData.get("productFile") as File | null;
   if (file && file.size > 0) {
-    fileUrl = await saveUploadedFile(file, "store");
+    fileUrl = await saveUploadedFile(file, "store", "any");
     fileName = file.name;
     fileSize = file.size;
     if (existing.fileUrl && isLocalUpload(existing.fileUrl)) {
@@ -170,8 +175,8 @@ export async function updateStoreProduct(id: string, formData: FormData) {
       summary: data.summary,
       description: data.description,
       category: data.category,
-      price: data.price,
-      currency: data.currency.toUpperCase(),
+      price: toCents(data.priceMajor),
+      currency: STORE_CURRENCY,
       externalUrl: data.externalUrl || null,
       published: data.published,
       featured: data.featured,

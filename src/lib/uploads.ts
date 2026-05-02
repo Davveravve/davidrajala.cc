@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 const ROOT = path.join(process.cwd(), "public", "uploads");
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB
+const MAX_ANY_BYTES = 500 * 1024 * 1024; // 500 MB — for downloadable store files
 
 const IMAGE_MIME = new Map<string, string>([
   ["image/png", "png"],
@@ -19,7 +20,12 @@ const VIDEO_MIME = new Map<string, string>([
   ["video/quicktime", "mov"],
 ]);
 
-type Kind = "image" | "video" | "auto";
+type Kind = "image" | "video" | "auto" | "any";
+
+function safeExtension(filename: string): string {
+  const m = /\.([a-z0-9]{1,8})$/i.exec(filename);
+  return m ? m[1].toLowerCase() : "bin";
+}
 
 export async function saveUploadedFile(
   file: File,
@@ -32,12 +38,22 @@ export async function saveUploadedFile(
   if (kind === "image" && !isImage) throw new Error("Endast bilder är tillåtna här");
   if (kind === "video" && !isVideo) throw new Error("Endast video är tillåten här");
 
-  const map = isVideo ? VIDEO_MIME : IMAGE_MIME;
-  const ext = map.get(file.type);
-  if (!ext) {
-    throw new Error(`Filtypen ${file.type || "okänd"} är inte tillåten`);
+  // For "any" mode (e.g. store product files), accept whatever the browser
+  // sends and trust the original extension. Still bound by MAX_ANY_BYTES.
+  let ext: string;
+  let max: number;
+  if (kind === "any") {
+    ext = safeExtension(file.name);
+    max = MAX_ANY_BYTES;
+  } else {
+    const map = isVideo ? VIDEO_MIME : IMAGE_MIME;
+    const fromMime = map.get(file.type);
+    if (!fromMime) {
+      throw new Error(`Filtypen ${file.type || "okänd"} är inte tillåten`);
+    }
+    ext = fromMime;
+    max = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
   }
-  const max = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
   if (file.size > max) {
     throw new Error(`Filen är för stor (max ${Math.round(max / 1024 / 1024)} MB)`);
   }

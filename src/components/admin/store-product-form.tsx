@@ -142,21 +142,11 @@ export function StoreProductForm(props: Props) {
         </Card>
 
         <Card title="Pricing & category">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field
-              label="Price (in öre / cents)"
-              name="price"
-              type="number"
-              defaultValue={String(product?.price ?? 0)}
-              help="2900 = 29.00 SEK · 1499 = 14.99 USD"
-              required
-            />
-            <Field
-              label="Currency"
-              name="currency"
-              defaultValue={product?.currency ?? "SEK"}
-              placeholder="SEK"
-              help="3-letter code"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <PriceField
+              label="Price (USD)"
+              name="priceMajor"
+              defaultValueCents={product?.price ?? 0}
             />
             <Select
               label="Category"
@@ -274,6 +264,42 @@ export function StoreProductForm(props: Props) {
         onConfirm={confirmDelete}
       />
     </>
+  );
+}
+
+function PriceField({
+  label,
+  name,
+  defaultValueCents,
+}: {
+  label: string;
+  name: string;
+  defaultValueCents: number;
+}) {
+  // Render the price in major units (e.g. 4.99) — server converts back to cents.
+  const initial = (defaultValueCents / 100).toFixed(2);
+  return (
+    <label className="block">
+      <span className="block text-sm font-medium mb-1.5">{label}</span>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-fg-muted)] pointer-events-none">
+          $
+        </span>
+        <input
+          name={name}
+          type="number"
+          step="0.01"
+          min="0"
+          defaultValue={initial}
+          placeholder="0.00"
+          required
+          className="w-full pl-7 pr-3 py-2.5 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all"
+        />
+      </div>
+      <span className="block text-xs text-[var(--color-fg-muted)] mt-1.5">
+        Type the dollar amount — e.g. 4.99 or 19.00. Stored in cents internally.
+      </span>
+    </label>
   );
 }
 
