@@ -19,6 +19,9 @@ import {
   Layout,
   Image as ImageIcon,
   Activity,
+  ShoppingBag,
+  Receipt,
+  Users,
 } from "lucide-react";
 
 const NAV = [
@@ -26,6 +29,9 @@ const NAV = [
   { href: "/admin/site-editor", label: "Site", icon: Layout },
   { href: "/admin/projects", label: "Projects", icon: FolderKanban },
   { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
+  { href: "/admin/store", label: "Store", icon: ShoppingBag },
+  { href: "/admin/orders", label: "Orders", icon: Receipt },
+  { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/about", label: "About", icon: User },
   { href: "/admin/messages", label: "Messages", icon: Mail },

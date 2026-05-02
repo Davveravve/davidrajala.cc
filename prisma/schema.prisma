@@ -81,6 +81,83 @@ model GalleryImage {
   createdAt DateTime @default(now())
 }
 
+/// Storefront customer accounts. Separate from AdminUser — the admin is
+/// the owner of the site, customers are buyers.
+model Customer {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
+}
+
+/// A digital product for sale on /store. Price stored in minor units
+/// (öre / cents) to avoid float rounding.
+model StoreProduct {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  summary     String   @default("")
+  description String   @default("")
+  /// "game" | "asset" | "program" | "other"
+  category    String   @default("other")
+  price       Int      @default(0)
+  currency    String   @default("SEK")
+  coverUrl    String   @default("")
+  /// Path to the downloadable file under public/uploads/store/.
+  fileUrl     String   @default("")
+  fileSize    Int      @default(0)
+  fileName    String   @default("")
+  /// Optional links to external storefronts (Gumroad / Itch.io / Steam).
+  externalUrl String?
+  published   Boolean  @default(true)
+  featured    Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       OrderItem[]
+}
+
+model Order {
+  id                  String      @id @default(cuid())
+  customerId          String
+  customer            Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  /// Total in minor units, includes tax if Stripe Tax is enabled.
+  totalAmount         Int
+  currency            String      @default("SEK")
+  /// "pending" | "paid" | "failed" | "refunded"
+  status              String      @default("pending")
+  stripeSessionId     String?     @unique
+  stripePaymentIntent String?
+  paidAt              DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  items               OrderItem[]
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model OrderItem {
+  id              String       @id @default(cuid())
+  orderId         String
+  order           Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         StoreProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  /// Snapshot of the product price at purchase time.
+  priceAtPurchase Int
+  /// Snapshot of file URL at purchase — survives if owner later renames.
+  fileUrlSnapshot String       @default("")
+  fileNameSnapshot String      @default("")
+  downloadCount   Int          @default(0)
+  createdAt       DateTime     @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
 /// Append-only audit trail of admin actions for the activity feed.
 model ActivityLog {
   id         String   @id @default(cuid())
