@@ -29,7 +29,10 @@ export function Hero({
   return (
     <section className="relative min-h-[100vh] flex items-center overflow-hidden pt-32 pb-24">
       {hasBg && (
-        <div className="absolute inset-0">
+        <div
+          className="absolute inset-0"
+          style={{ transform: "translateZ(0)", contain: "paint" }}
+        >
           {isVideo ? (
             <video
               src={about.heroBgUrl}
@@ -38,7 +41,14 @@ export function Hero({
               muted
               playsInline
               preload="metadata"
+              disablePictureInPicture
+              disableRemotePlayback
               className="absolute inset-0 w-full h-full object-cover"
+              style={{
+                transform: "translateZ(0)",
+                willChange: "transform",
+                backfaceVisibility: "hidden",
+              }}
             />
           ) : (
             <Image
