@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChatButton } from "@/components/chat/chat-button";
+import { useChat } from "@/components/chat/chat-context";
 import type { AboutMe, HomeSection, SiteSettings } from "@prisma/client";
 
 export function Hero({
@@ -17,6 +19,31 @@ export function Hero({
 }) {
   const hasBg = !!about.heroBgUrl;
   const isVideo = about.heroBgType === "video";
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const { open: chatOpen } = useChat();
+
+  // Pause the video when it's offscreen — saves CPU/GPU once the user has scrolled past.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) v.play().catch(() => {});
+        else v.pause();
+      },
+      { threshold: 0.05 },
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+
+  // Pause when chat overlay is open — user can't see the video anyway.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (chatOpen) v.pause();
+    else v.play().catch(() => {});
+  }, [chatOpen]);
 
   const sublineTemplate =
     settings?.heroSubline ??
@@ -35,6 +62,7 @@ export function Hero({
         >
           {isVideo ? (
             <video
+              ref={videoRef}
               src={about.heroBgUrl}
               autoPlay
               loop

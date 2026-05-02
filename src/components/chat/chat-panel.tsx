@@ -254,7 +254,7 @@ export function ChatPanel({
           className="fixed inset-0 z-[150]"
         >
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/80"
             onClick={close}
             aria-hidden
           />
