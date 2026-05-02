@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { ToasterProvider, Toaster, useToaster } from "./toaster";
 
 const POLL_INTERVAL_MS = 20_000;
@@ -28,6 +29,7 @@ export function AdminToaster() {
 
 function AdminNotificationsPoller() {
   const { push } = useToaster();
+  const router = useRouter();
   const shownRef = useRef<Set<string>>(new Set());
   const firstRunRef = useRef(true);
 
@@ -126,6 +128,10 @@ function AdminNotificationsPoller() {
           href: "/admin/messages",
           variant: "default",
         });
+        // Refresh whatever admin page we're on so the dashboard's
+        // "Unread messages" card, the messages list, etc. all update
+        // without a manual reload.
+        router.refresh();
         try {
           window.sessionStorage.setItem(
             STORAGE_KEY,

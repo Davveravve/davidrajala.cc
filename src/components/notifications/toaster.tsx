@@ -20,6 +20,8 @@ export type Toast = {
   title: string;
   body: string;
   href?: string;
+  /// Custom click handler — runs instead of `href` navigation when set.
+  onClick?: () => void;
   variant?: ToastVariant;
   createdAt: number;
 };
@@ -62,6 +64,7 @@ export function ToasterProvider({ children }: { children: React.ReactNode }) {
       title: input.title,
       body: input.body,
       href: input.href,
+      onClick: input.onClick,
       variant: input.variant ?? "default",
       createdAt: input.createdAt ?? Date.now(),
     };
@@ -159,14 +162,16 @@ function ToastCard({
       : "text-[var(--color-fg-muted)] bg-[var(--color-surface-2)]";
 
   function handleClick() {
-    if (toast.href) {
+    if (toast.onClick) {
+      toast.onClick();
+    } else if (toast.href) {
       router.push(toast.href);
     }
     onDismiss();
   }
 
   function handleKey(e: React.KeyboardEvent) {
-    if (toast.href && (e.key === "Enter" || e.key === " ")) {
+    if ((toast.href || toast.onClick) && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
       handleClick();
     }

@@ -167,10 +167,10 @@ export function MessagesView({
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5 min-h-[60vh]">
+      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5 h-[calc(100vh-280px)] min-h-[500px]">
         <aside
-          className={`rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden ${
-            showList ? "block" : "hidden lg:block"
+          className={`rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden h-full min-h-0 ${
+            showList ? "flex flex-col" : "hidden lg:flex lg:flex-col"
           }`}
         >
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface-2)]/40">
@@ -204,7 +204,7 @@ export function MessagesView({
               </>
             )}
           </div>
-          <ul className="divide-y divide-[var(--color-border)] max-h-[70vh] overflow-y-auto">
+          <ul className="divide-y divide-[var(--color-border)] flex-1 min-h-0 overflow-y-auto">
             {threads.map((t) => (
               <ListItem
                 key={t.threadKey}
@@ -222,8 +222,8 @@ export function MessagesView({
         </aside>
 
         <section
-          className={`rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden ${
-            showConvo ? "block" : "hidden lg:block"
+          className={`rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden h-full min-h-0 ${
+            showConvo ? "flex flex-col" : "hidden lg:flex lg:flex-col"
           }`}
         >
           <AnimatePresence mode="wait">
@@ -234,7 +234,7 @@ export function MessagesView({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="flex flex-col h-full"
+                className="flex flex-col h-full min-h-0"
               >
                 <ConversationHeader
                   thread={selected}
