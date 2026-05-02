@@ -115,9 +115,12 @@ export default async function StoreAccountPage() {
               {orders.map((o) => (
                 <li
                   key={o.id}
-                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)] transition-colors"
                 >
-                  <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[var(--color-border)]">
+                  <Link
+                    href={`/store/orders/${o.id}`}
+                    className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[var(--color-border)]"
+                  >
                     <div>
                       <div className="font-medium text-sm">
                         Order #{o.id.slice(0, 8)}
@@ -142,7 +145,7 @@ export default async function StoreAccountPage() {
                         {formatPrice(o.totalAmount, o.currency)}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                   <ul className="px-5 py-3 divide-y divide-[var(--color-border)]">
                     {o.items.map((it) => (
                       <li

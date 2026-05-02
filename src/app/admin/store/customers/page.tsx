@@ -2,20 +2,28 @@ import { Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format-price";
 import { StoreTabs } from "@/components/admin/store-tabs";
+import { GiftOrderButton } from "@/components/admin/gift-order-button";
 
 export const metadata = { title: "Customers — Admin" };
 
 export default async function AdminCustomersPage() {
-  const customers = await prisma.customer.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      orders: {
-        where: { status: "paid" },
-        select: { totalAmount: true, currency: true },
+  const [customers, products] = await Promise.all([
+    prisma.customer.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        orders: {
+          where: { status: "paid" },
+          select: { totalAmount: true, currency: true },
+        },
+        _count: { select: { orders: true } },
       },
-      _count: { select: { orders: true } },
-    },
-  });
+    }),
+    prisma.storeProduct.findMany({
+      where: { published: true },
+      orderBy: [{ featured: "desc" }, { order: "asc" }],
+      select: { id: true, title: true, fileName: true },
+    }),
+  ]);
 
   return (
     <div className="container-page max-w-7xl py-8 md:py-12">
@@ -85,6 +93,11 @@ export default async function AdminCustomersPage() {
                     month: "short",
                   })}
                 </time>
+                <GiftOrderButton
+                  customerId={c.id}
+                  customerLabel={c.name || c.email}
+                  products={products}
+                />
               </li>
             );
           })}
