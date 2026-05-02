@@ -1,4 +1,5 @@
-import { Download } from "lucide-react";
+import Link from "next/link";
+import { Download, User, Tag, Mail, ArrowUpRight } from "lucide-react";
 import { getNotificationSettings } from "@/lib/telegram";
 import { NotificationsForm } from "@/components/admin/notifications-form";
 
@@ -12,9 +13,24 @@ export default async function AdminSettingsPage() {
           Settings
         </div>
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight">
-          Notifications & integrations
+          Settings
         </h1>
       </div>
+
+      <section className="mb-12">
+        <h2 className="font-display text-lg font-medium mb-4">Quick links</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <QuickLink href="/admin/about" label="Profile / About" icon={User} />
+          <QuickLink href="/admin/categories" label="Project categories" icon={Tag} />
+          <QuickLink href="/admin/messages" label="Messages inbox" icon={Mail} />
+        </div>
+      </section>
+
+      <section className="mb-12">
+        <h2 className="font-display text-lg font-medium mb-4">
+          Notifications & integrations
+        </h2>
+      </section>
 
       <NotificationsForm
         initial={{
@@ -48,5 +64,31 @@ export default async function AdminSettingsPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function QuickLink({
+  href,
+  label,
+  icon: Icon,
+}: {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 hover:border-[var(--color-accent)]/50 transition-colors"
+    >
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-surface-2)] text-[var(--color-accent)]">
+        <Icon size={14} />
+      </span>
+      <span className="flex-1 text-sm font-medium">{label}</span>
+      <ArrowUpRight
+        size={14}
+        className="text-[var(--color-fg-muted)] group-hover:text-[var(--color-accent)] group-hover:rotate-45 transition-all duration-300"
+      />
+    </Link>
   );
 }

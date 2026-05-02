@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Inbox } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format-price";
+import { StoreTabs } from "@/components/admin/store-tabs";
 
 export const metadata = { title: "Orders — Admin" };
 
@@ -17,14 +18,19 @@ export default async function AdminOrdersPage() {
 
   return (
     <div className="container-page max-w-7xl py-8 md:py-12">
-      <div className="mb-10">
+      <div className="mb-6">
         <div className="text-[10px] uppercase tracking-[0.12em] font-medium text-[var(--color-fg-muted)] mb-3">
           Sales
         </div>
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight">
-          Orders
+          Store
         </h1>
-        <p className="mt-2 text-sm text-[var(--color-fg-muted)]">
+      </div>
+
+      <StoreTabs />
+
+      <div className="mb-8">
+        <p className="text-sm text-[var(--color-fg-muted)]">
           Most recent first. Up to 200 shown.
         </p>
       </div>

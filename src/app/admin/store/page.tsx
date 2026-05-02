@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Plus, Pencil, ShoppingBag } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, categoryLabel } from "@/lib/format-price";
+import { StoreTabs } from "@/components/admin/store-tabs";
 
 export const metadata = { title: "Store — Admin" };
 
@@ -14,18 +15,21 @@ export default async function AdminStorePage() {
 
   return (
     <div className="container-page max-w-7xl py-8 md:py-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.12em] font-medium text-[var(--color-fg-muted)] mb-3">
-            Manage
-          </div>
-          <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight">
-            Store
-          </h1>
-          <p className="mt-2 text-sm text-[var(--color-fg-muted)]">
-            Products you sell on /store. File and cover are uploaded here.
-          </p>
+      <div className="mb-6">
+        <div className="text-[10px] uppercase tracking-[0.12em] font-medium text-[var(--color-fg-muted)] mb-3">
+          Manage
         </div>
+        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight">
+          Store
+        </h1>
+      </div>
+
+      <StoreTabs />
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
+        <p className="text-sm text-[var(--color-fg-muted)] max-w-2xl">
+          Products you sell on /store. File and cover are uploaded here.
+        </p>
         <Link
           href="/admin/store/new"
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-medium text-sm hover:shadow-[0_0_30px_var(--color-accent-glow)] transition-shadow self-start"
