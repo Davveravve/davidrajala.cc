@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { MessagesView, type Thread, type ThreadMsg } from "@/components/admin/messages-view";
 
+export const dynamic = "force-dynamic";
+
 type View = "inbox" | "read" | "saved";
 
 function parseView(v?: string | string[]): View {

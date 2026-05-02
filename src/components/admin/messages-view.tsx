@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
@@ -107,6 +108,39 @@ export function MessagesView({
       setSelectedKey(threads[0].threadKey);
     }
   }, [threads, selectedKey]);
+
+  // ── live SSE: instant updates without refresh ────────────────────────
+  const router = useRouter();
+  // Drop the local overlay whenever the server snapshot changes (after
+  // router.refresh) — otherwise we'd double up on the same row.
+  useEffect(() => {
+    setLocalMessages({});
+  }, [threads]);
+
+  useEffect(() => {
+    const es = new EventSource("/api/admin/notifications/stream");
+    type SsePayload = {
+      id: string;
+      senderType: "customer" | "admin";
+      message: string;
+      createdAt: string;
+      name: string;
+    };
+    es.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data) as SsePayload;
+        if (msg.senderType !== "customer") return;
+        // Use the sender name to make a best-effort thread match. The
+        // server-side stream doesn't expose threadKey directly to admin;
+        // simplest robust path is to refresh, which gets us the canonical
+        // grouping + unread counts.
+        router.refresh();
+      } catch {
+        // ignore
+      }
+    };
+    return () => es.close();
+  }, [router]);
 
   const selected = useMemo(
     () => threads.find((t) => t.threadKey === selectedKey) ?? null,
