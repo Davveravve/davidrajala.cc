@@ -69,7 +69,7 @@ export async function reorderHomeSections(orderedIds: string[]) {
 
 export async function addHomeSection(type: string) {
   await ensureAdmin();
-  const valid = ["hero", "featured", "latest", "about", "contact"];
+  const valid = ["hero", "featured", "latest", "store-featured", "about", "contact"];
   if (!valid.includes(type)) throw new Error("Invalid section type");
   const last = await prisma.homeSection.aggregate({ _max: { order: true } });
   const created = await prisma.homeSection.create({
@@ -143,6 +143,24 @@ export async function setHomeSectionProject(id: string, projectId: string | null
     entityType: "section",
     entityId: id,
     label: projectId ? "project bound" : "project unbound",
+  });
+  revalidatePath("/");
+  revalidatePath("/admin/site-editor");
+}
+
+export async function setHomeSectionStoreProduct(
+  id: string,
+  storeProductId: string | null,
+) {
+  await ensureAdmin();
+  await prisma.homeSection.update({
+    where: { id },
+    data: { storeProductId },
+  });
+  await logActivity("section.update", {
+    entityType: "section",
+    entityId: id,
+    label: storeProductId ? "store product bound" : "store product unbound",
   });
   revalidatePath("/");
   revalidatePath("/admin/site-editor");

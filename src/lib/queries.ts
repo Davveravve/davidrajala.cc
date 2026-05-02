@@ -70,6 +70,7 @@ export const HOME_SECTION_TYPES = [
   "hero",
   "featured",
   "latest",
+  "store-featured",
   "about",
   "contact",
 ] as const;
@@ -77,20 +78,37 @@ export const HOME_SECTION_TYPES = [
 export type HomeSectionType = (typeof HOME_SECTION_TYPES)[number];
 
 export async function getHomeSections() {
+  const include = {
+    project: {
+      include: {
+        category: true,
+        images: { orderBy: { order: "asc" as const }, take: 1 },
+      },
+    },
+    storeProduct: true,
+  };
   let rows = await prisma.homeSection.findMany({
     orderBy: { order: "asc" },
-    include: { project: { include: { category: true, images: { orderBy: { order: "asc" }, take: 1 } } } },
+    include,
   });
   if (rows.length === 0) {
-    // First-run lazy seed: one row per default type.
+    // First-run lazy seed: one row per default type. The store-featured
+    // type is seeded but hidden by default — the owner enables it from
+    // the site editor and picks a product.
     await prisma.$transaction(
       HOME_SECTION_TYPES.map((type, idx) =>
-        prisma.homeSection.create({ data: { type, order: idx } }),
+        prisma.homeSection.create({
+          data: {
+            type,
+            order: idx,
+            visible: type !== "store-featured",
+          },
+        }),
       ),
     );
     rows = await prisma.homeSection.findMany({
       orderBy: { order: "asc" },
-      include: { project: { include: { category: true, images: { orderBy: { order: "asc" }, take: 1 } } } },
+      include,
     });
   }
   return rows;

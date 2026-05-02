@@ -115,9 +115,10 @@ model StoreProduct {
   published   Boolean  @default(true)
   featured    Boolean  @default(false)
   order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  items       OrderItem[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  items        OrderItem[]
+  homeSections HomeSection[]
 }
 
 model Order {
@@ -252,19 +253,23 @@ model NotificationSettings {
 /// duplicated to spotlight several projects. `projectId` is set on
 /// featured sections to bind a specific project; otherwise null.
 model HomeSection {
-  id          String   @id @default(cuid())
-  type        String
-  order       Int      @default(0)
-  visible     Boolean  @default(true)
-  eyebrow     String?
-  title       String?
-  titleMuted  String?
-  body        String?
-  ctaLabel    String?
-  ctaHref     String?
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  updatedAt   DateTime @updatedAt @default(now())
+  id             String        @id @default(cuid())
+  type           String
+  order          Int           @default(0)
+  visible        Boolean       @default(true)
+  eyebrow        String?
+  title          String?
+  titleMuted     String?
+  body           String?
+  ctaLabel       String?
+  ctaHref        String?
+  /// Used by `featured` sections to bind a Project to spotlight.
+  projectId      String?
+  project        Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  /// Used by `store-featured` sections to bind a StoreProduct to spotlight.
+  storeProductId String?
+  storeProduct   StoreProduct? @relation(fields: [storeProductId], references: [id], onDelete: SetNull)
+  updatedAt      DateTime      @updatedAt @default(now())
 }
 
 /// Site-wide settings (theme, footer copy, hero subline). Singleton.

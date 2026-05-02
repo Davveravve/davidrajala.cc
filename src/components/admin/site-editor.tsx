@@ -31,6 +31,7 @@ import {
   Copy,
   Trash2,
   Plus,
+  ShoppingBag,
 } from "lucide-react";
 import {
   updateHomeSection,
@@ -42,6 +43,7 @@ import {
   duplicateHomeSection,
   deleteHomeSection,
   setHomeSectionProject,
+  setHomeSectionStoreProduct,
 } from "@/app/admin/site-editor/actions";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { HomeSection, SiteSettings } from "@prisma/client";
@@ -53,8 +55,16 @@ type ProjectOption = {
   coverUrl: string;
 };
 
+type StoreProductOption = {
+  id: string;
+  title: string;
+  slug: string;
+  coverUrl: string;
+};
+
 type SectionWithProject = HomeSection & {
   project?: { id: string; title: string; slug: string; coverUrl: string } | null;
+  storeProduct?: { id: string; title: string; slug: string; coverUrl: string } | null;
 };
 
 const SECTION_META: Record<
@@ -62,8 +72,9 @@ const SECTION_META: Record<
   { label: string; icon: React.ComponentType<{ size?: number }>; description: string }
 > = {
   hero: { label: "Hero", icon: Layout, description: "Top of the homepage — name, subline, primary CTA" },
-  featured: { label: "Featured project", icon: Sparkles, description: "Spotlight for the starred project" },
+  featured: { label: "Featured project", icon: Sparkles, description: "Spotlight for a specific project" },
   latest: { label: "Latest projects", icon: Briefcase, description: "Recent project grid" },
+  "store-featured": { label: "Featured store item", icon: ShoppingBag, description: "Spotlight for a store product" },
   about: { label: "About snippet", icon: User, description: "Bio + skills teaser" },
   contact: { label: "Contact CTA", icon: MessageCircle, description: "Big CTA at the bottom" },
 };
@@ -72,10 +83,12 @@ export function SiteEditor({
   sections: initialSections,
   settings,
   projects,
+  storeProducts,
 }: {
   sections: SectionWithProject[];
   settings: SiteSettings;
   projects: ProjectOption[];
+  storeProducts: StoreProductOption[];
 }) {
   const [sections, setSections] = useState(initialSections);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -203,6 +216,21 @@ export function SiteEditor({
     });
   }
 
+  function handleSetStoreProduct(id: string, storeProductId: string | null) {
+    const storeProduct = storeProductId
+      ? storeProducts.find((p) => p.id === storeProductId) ?? null
+      : null;
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, storeProductId, storeProduct } : s,
+      ),
+    );
+    startTransition(async () => {
+      await setHomeSectionStoreProduct(id, storeProductId);
+      setSavedAt(Date.now());
+    });
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6">
       {/* Sections list */}
@@ -219,12 +247,14 @@ export function SiteEditor({
                   key={s.id}
                   section={s}
                   projects={projects}
+                  storeProducts={storeProducts}
                   open={openId === s.id}
                   onToggle={() => setOpenId(openId === s.id ? null : s.id)}
                   onToggleVisible={() => handleToggleVisible(s.id)}
                   onDuplicate={() => handleDuplicate(s.id)}
                   onDelete={() => handleDelete(s)}
                   onSetProject={(pid) => handleSetProject(s.id, pid)}
+                  onSetStoreProduct={(pid) => handleSetStoreProduct(s.id, pid)}
                   onSaved={() => {
                     setSavedAt(Date.now());
                   }}
@@ -349,23 +379,27 @@ function PanelHeader({ title, subtitle }: { title: string; subtitle?: string }) 
 function SortableRow({
   section,
   projects,
+  storeProducts,
   open,
   onToggle,
   onToggleVisible,
   onDuplicate,
   onDelete,
   onSetProject,
+  onSetStoreProduct,
   onSaved,
   onUpdated,
 }: {
   section: SectionWithProject;
   projects: ProjectOption[];
+  storeProducts: StoreProductOption[];
   open: boolean;
   onToggle: () => void;
   onToggleVisible: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onSetProject: (projectId: string | null) => void;
+  onSetStoreProduct: (storeProductId: string | null) => void;
   onSaved: () => void;
   onUpdated: (s: HomeSection) => void;
 }) {
@@ -436,6 +470,16 @@ function SortableRow({
                   no project
                 </span>
               )}
+              {section.type === "store-featured" && section.storeProduct && (
+                <span className="text-[10px] text-[var(--color-fg-muted)] truncate">
+                  · {section.storeProduct.title}
+                </span>
+              )}
+              {section.type === "store-featured" && !section.storeProduct && (
+                <span className="text-[9px] font-mono uppercase tracking-wider text-orange-300 border border-orange-300/40 px-1.5 py-0.5 rounded">
+                  no product
+                </span>
+              )}
               {hasOverrides && (
                 <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--color-accent)] border border-[var(--color-accent)]/40 px-1.5 py-0.5 rounded">
                   custom
@@ -486,7 +530,9 @@ function SortableRow({
         <SectionEditForm
           section={section}
           projects={projects}
+          storeProducts={storeProducts}
           onSetProject={onSetProject}
+          onSetStoreProduct={onSetStoreProduct}
           onSaved={(updated) => {
             onUpdated(updated);
             onSaved();
@@ -500,12 +546,16 @@ function SortableRow({
 function SectionEditForm({
   section,
   projects,
+  storeProducts,
   onSetProject,
+  onSetStoreProduct,
   onSaved,
 }: {
   section: SectionWithProject;
   projects: ProjectOption[];
+  storeProducts: StoreProductOption[];
   onSetProject: (projectId: string | null) => void;
+  onSetStoreProduct: (storeProductId: string | null) => void;
   onSaved: (updated: HomeSection) => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -549,11 +599,11 @@ function SectionEditForm({
   }
 
   // Per-section field configuration so we only show fields that the section actually uses.
-  const showEyebrow = ["featured", "latest", "about", "contact"].includes(section.type);
+  const showEyebrow = ["featured", "latest", "store-featured", "about", "contact"].includes(section.type);
   const showTitle = ["latest", "about", "contact"].includes(section.type);
   const showTitleMuted = ["hero", "latest", "about", "contact"].includes(section.type);
   const showBody = ["contact"].includes(section.type);
-  const showCta = ["hero", "featured", "latest", "about"].includes(section.type);
+  const showCta = ["hero", "featured", "latest", "store-featured", "about"].includes(section.type);
   const showCtaHref = ["hero", "latest", "about"].includes(section.type);
 
   return (
@@ -566,6 +616,13 @@ function SectionEditForm({
           projects={projects}
           selectedId={section.projectId}
           onChange={onSetProject}
+        />
+      )}
+      {section.type === "store-featured" && (
+        <FeaturedStorePicker
+          products={storeProducts}
+          selectedId={section.storeProductId}
+          onChange={onSetStoreProduct}
         />
       )}
       {showEyebrow && (
@@ -761,6 +818,40 @@ function SettingsForm({
         {isPending ? "Saving..." : "Save global settings"}
       </button>
     </form>
+  );
+}
+
+function FeaturedStorePicker({
+  products,
+  selectedId,
+  onChange,
+}: {
+  products: StoreProductOption[];
+  selectedId: string | null;
+  onChange: (id: string | null) => void;
+}) {
+  return (
+    <div>
+      <span className="block text-xs font-medium text-[var(--color-fg-muted)] mb-1.5">
+        Store product
+      </span>
+      <select
+        value={selectedId ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all text-sm"
+      >
+        <option value="">— Pick a published product —</option>
+        {products.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.title}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1.5 text-[11px] text-[var(--color-fg-muted)]">
+        Spotlight one of your published store products on the home page.
+        The section stays hidden until you pick one.
+      </p>
+    </div>
   );
 }
 

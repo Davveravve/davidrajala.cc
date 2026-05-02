@@ -66,6 +66,11 @@ export function SiteFooter({
                 </Link>
               </li>
               <li>
+                <Link href="/store" className="text-sm hover:text-[var(--color-accent)] transition-colors">
+                  Store
+                </Link>
+              </li>
+              <li>
                 <Link href="/about" className="text-sm hover:text-[var(--color-accent)] transition-colors">
                   About
                 </Link>

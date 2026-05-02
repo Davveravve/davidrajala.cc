@@ -1,6 +1,7 @@
 import { Hero } from "@/components/sections/hero";
 import { FeaturedHighlight } from "@/components/sections/featured-highlight";
 import { LatestProjects } from "@/components/sections/latest-projects";
+import { StoreFeatured } from "@/components/sections/store-featured";
 import { AboutSnippet } from "@/components/sections/about-snippet";
 import { ContactCta } from "@/components/sections/contact-cta";
 import {
@@ -60,6 +61,10 @@ export default async function HomePage() {
           }
           case "latest":
             return <LatestProjects key={s.id} projects={recent} config={s} />;
+          case "store-featured":
+            return s.storeProduct && s.storeProduct.published ? (
+              <StoreFeatured key={s.id} product={s.storeProduct} config={s} />
+            ) : null;
           case "about":
             return <AboutSnippet key={s.id} about={about} config={s} />;
           case "contact":

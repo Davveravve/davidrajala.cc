@@ -7,12 +7,17 @@ export const metadata = {
 };
 
 export default async function SiteEditorPage() {
-  const [sections, settings, projects] = await Promise.all([
+  const [sections, settings, projects, storeProducts] = await Promise.all([
     getHomeSections(),
     getSiteSettings(),
     prisma.project.findMany({
       where: { published: true },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      select: { id: true, title: true, slug: true, coverUrl: true },
+    }),
+    prisma.storeProduct.findMany({
+      where: { published: true },
+      orderBy: [{ featured: "desc" }, { order: "asc" }],
       select: { id: true, title: true, slug: true, coverUrl: true },
     }),
   ]);
@@ -33,7 +38,12 @@ export default async function SiteEditorPage() {
         </p>
       </div>
 
-      <SiteEditor sections={sections} settings={settings} projects={projects} />
+      <SiteEditor
+        sections={sections}
+        settings={settings}
+        projects={projects}
+        storeProducts={storeProducts}
+      />
     </div>
   );
 }

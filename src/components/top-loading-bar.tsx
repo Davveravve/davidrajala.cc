@@ -29,25 +29,21 @@ export function TopLoadingBar() {
       if (!a) return;
       const href = a.getAttribute("href");
       if (!href) return;
-      // External / new-tab / hash / mailto / download — skip.
       if (a.target === "_blank") return;
       if (a.hasAttribute("download")) return;
-      if (
-        href.startsWith("http://") ||
-        href.startsWith("https://") ||
-        href.startsWith("mailto:") ||
-        href.startsWith("tel:") ||
-        href.startsWith("#")
-      ) {
-        // Allow same-origin absolute URLs.
-        try {
-          const url = new URL(href, window.location.href);
-          if (url.origin !== window.location.origin) return;
-          if (url.pathname === window.location.pathname) return;
-        } catch {
-          return;
-        }
+      if (href.startsWith("mailto:") || href.startsWith("tel:")) return;
+      // Resolve any href (relative or absolute) against the current URL so we
+      // can check origin + pathname uniformly.
+      let url: URL;
+      try {
+        url = new URL(href, window.location.href);
+      } catch {
+        return;
       }
+      if (url.origin !== window.location.origin) return;
+      // Same pathname (with or without hash) → no navigation, don't show the
+      // bar. This covers Home → Home, Sign in → Sign in, and #anchors.
+      if (url.pathname === window.location.pathname) return;
       start();
     };
 
