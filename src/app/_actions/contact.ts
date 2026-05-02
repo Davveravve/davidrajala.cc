@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { notifyNewMessage } from "@/lib/telegram";
 import { CUSTOMER_SENDER, threadKeyFor } from "@/lib/chat-thread";
+import { emitChatMessage } from "@/lib/chat-bus";
 
 const detailSchema = z.object({
   type: z.string().min(1).max(40),
@@ -114,7 +115,7 @@ export async function sendChatMessage(
   const primaryEmail =
     data.contacts.find((c) => c.type === "mail")?.value ?? "";
 
-  await prisma.contactMessage.create({
+  const created = await prisma.contactMessage.create({
     data: {
       name: data.name,
       email: primaryEmail,
@@ -128,6 +129,19 @@ export async function sendChatMessage(
           label: c.label ?? "",
         })),
       },
+    },
+  });
+
+  // Push to live SSE listeners — chat panel sees their own message echoed
+  // back if subscribed, admin gets an instant toast.
+  emitChatMessage({
+    threadKey: threadKeyFor(primaryEmail),
+    message: {
+      id: created.id,
+      senderType: "customer",
+      message: created.message,
+      createdAt: created.createdAt.toISOString(),
+      name: created.name,
     },
   });
 

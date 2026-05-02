@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { getAboutMe } from "@/lib/queries";
+
+export const dynamic = "force-dynamic";
 import {
   Plus,
   User,
@@ -24,19 +26,17 @@ export default async function AdminDashboard() {
     projectCount,
     categoryCount,
     msgCount,
-    unreadCount,
-    unreadMessages,
+    unreadAll,
     recentProjects,
   ] = await Promise.all([
     getAboutMe(),
     prisma.project.count(),
     prisma.category.count(),
     prisma.contactMessage.count(),
-    prisma.contactMessage.count({ where: { read: false } }),
     prisma.contactMessage.findMany({
-      where: { read: false },
+      where: { read: false, senderType: "customer" },
       orderBy: { createdAt: "desc" },
-      take: 3,
+      take: 50,
       include: { contacts: { take: 1, where: { type: "email" } } },
     }),
     prisma.project.findMany({
@@ -45,6 +45,24 @@ export default async function AdminDashboard() {
       include: { category: true },
     }),
   ]);
+
+  // Dedupe by thread (email lower-cased) — show one card per person, with
+  // the most recent message and a +N badge for the rest.
+  const threadMap = new Map<
+    string,
+    {
+      latest: (typeof unreadAll)[number];
+      count: number;
+    }
+  >();
+  for (const m of unreadAll) {
+    const key = (m.threadKey?.trim() || m.email || m.id).toLowerCase();
+    const cur = threadMap.get(key);
+    if (!cur) threadMap.set(key, { latest: m, count: 1 });
+    else cur.count++;
+  }
+  const unreadMessages = Array.from(threadMap.values()).slice(0, 3);
+  const unreadCount = unreadAll.length;
 
   const greeting = greetingForHour(new Date().getHours());
   const firstName = about.name.split(" ")[0];
@@ -133,8 +151,8 @@ export default async function AdminDashboard() {
         >
           {unreadMessages.length > 0 ? (
             <ul className="divide-y divide-[var(--color-border)]">
-              {unreadMessages.map((m) => {
-                const email = m.contacts[0]?.value ?? "";
+              {unreadMessages.map(({ latest: m, count }) => {
+                const email = m.contacts[0]?.value ?? m.email;
                 const initial = m.name.trim()[0]?.toUpperCase() ?? "?";
                 return (
                   <li key={m.id}>
@@ -151,7 +169,14 @@ export default async function AdminDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-0.5">
-                          <span className="font-semibold text-sm truncate">{m.name}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-semibold text-sm truncate">{m.name}</span>
+                            {count > 1 && (
+                              <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--color-accent)] bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 px-1.5 py-0.5 rounded flex-shrink-0">
+                                +{count - 1}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-[var(--color-fg-dim)] tabular-nums flex-shrink-0">
                             {formatRelative(m.createdAt)}
                           </span>

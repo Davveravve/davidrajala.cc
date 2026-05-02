@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureAdmin } from "@/lib/admin-guard";
 import { logActivity } from "@/lib/activity";
 import { ADMIN_SENDER } from "@/lib/chat-thread";
+import { emitChatMessage } from "@/lib/chat-bus";
 
 export async function markMessageRead(id: string, read: boolean) {
   await ensureAdmin();
@@ -99,6 +100,19 @@ export async function replyToThread(
     entityType: "message",
     entityId: created.id,
     label: text.slice(0, 60),
+  });
+
+  // Push the reply to any open SSE subscribers for this thread — the
+  // customer's chat panel renders it instantly, no polling delay.
+  emitChatMessage({
+    threadKey,
+    message: {
+      id: created.id,
+      senderType: "admin",
+      message: created.message,
+      createdAt: created.createdAt.toISOString(),
+      name: created.name,
+    },
   });
 
   revalidatePath("/admin/messages");

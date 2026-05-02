@@ -197,10 +197,33 @@ export function ChatPanel({
   useEffect(() => {
     if (!open) return;
     if (!threadKey) return;
-    // initial pull
+
+    // Initial pull, always — gets us in sync with whatever's in the DB.
     fetchThread();
+
+    // Live stream: subscribe to SSE and append new messages instantly.
+    const es = new EventSource(
+      `/api/chat/stream?key=${encodeURIComponent(threadKey)}`,
+    );
+    es.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data) as ThreadMessage;
+        setThreadMessages((prev) =>
+          prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
+        );
+      } catch {
+        // ignore malformed frame
+      }
+    };
+
+    // Polling fallback: if SSE drops (proxy timeout, sleep, etc.) we
+    // still recover within POLL_INTERVAL_MS.
     const id = window.setInterval(fetchThread, POLL_INTERVAL_MS);
-    return () => window.clearInterval(id);
+
+    return () => {
+      window.clearInterval(id);
+      es.close();
+    };
   }, [open, threadKey, fetchThread]);
 
   // Show the thread either when the customer is logged in OR after the

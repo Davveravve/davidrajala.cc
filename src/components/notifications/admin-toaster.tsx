@@ -102,9 +102,47 @@ function AdminNotificationsPoller() {
     }
 
     tick();
+
+    // Live SSE: instant toast as soon as a customer sends a message,
+    // no waiting for the next 20s poll. Polling stays as fallback.
+    const es = new EventSource("/api/admin/notifications/stream");
+    type SsePayload = {
+      id: string;
+      senderType: "customer" | "admin";
+      message: string;
+      createdAt: string;
+      name: string;
+    };
+    es.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data) as SsePayload;
+        if (msg.senderType !== "customer") return;
+        if (shownRef.current.has(msg.id)) return;
+        shownRef.current.add(msg.id);
+        push({
+          id: msg.id,
+          title: "💬 New message",
+          body: `${msg.name}: ${msg.message.slice(0, 80)}`,
+          href: "/admin/messages",
+          variant: "default",
+        });
+        try {
+          window.sessionStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify([...shownRef.current]),
+          );
+        } catch {
+          // Ignore quota errors.
+        }
+      } catch {
+        // Malformed frame — ignore.
+      }
+    };
+
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
+      es.close();
     };
   }, [push]);
 
