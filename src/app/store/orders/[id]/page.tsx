@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Download, RefreshCw } from "lucide-react";
+import { ArrowLeft, Download, RefreshCw, Gift } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { signDownloadToken, MAX_DOWNLOADS } from "@/lib/download-tokens";
@@ -22,6 +22,14 @@ export default async function CustomerOrderDetailPage({
     include: { items: { include: { product: true } } },
   });
   if (!order) redirect("/store/account");
+
+  // Mark the gift notification as seen (no-op for non-gift orders).
+  if (order.notifyCustomer) {
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { notifyCustomer: false },
+    }).catch(() => {});
+  }
 
   const itemsWithTokens = await Promise.all(
     order.items.map(async (it) => ({
@@ -64,17 +72,28 @@ export default async function CustomerOrderDetailPage({
 
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
           <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center justify-between gap-3">
-            <span
-              className={`text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded ${statusClass(order.status)}`}
-            >
-              {order.status}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded ${statusClass(order.status)}`}
+              >
+                {order.status}
+              </span>
+              {order.isGift && (
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
+                  <Gift size={10} />
+                  Gifted
+                </span>
+              )}
+            </div>
             <span className="font-display text-lg tabular-nums">
-              {formatPrice(order.totalAmount, order.currency)}
+              {order.isGift ? "Free" : formatPrice(order.totalAmount, order.currency)}
             </span>
           </div>
 
-          {order.status === "pending" && (
+          {order.isGift && order.giftNote && (
+            <GiftNotice note={order.giftNote} />
+          )}
+          {order.status === "pending" && !order.isGift && (
             <PendingNotice />
           )}
           {order.status === "failed" && <FailedNotice />}
@@ -130,6 +149,26 @@ function PendingNotice() {
       <RefreshCw size={12} />
       Waiting for payment confirmation. If you completed checkout, refresh
       this page in a moment — Stripe normally confirms within seconds.
+    </div>
+  );
+}
+
+function GiftNotice({ note }: { note: string }) {
+  return (
+    <div className="px-5 py-4 border-b border-[var(--color-border)] bg-[var(--color-accent)]/5 text-[var(--color-fg)]">
+      <div className="flex items-start gap-3">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-accent)]/15 text-[var(--color-accent)] flex-shrink-0">
+          <Gift size={13} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-accent)] mb-1">
+            Gifted to you
+          </div>
+          <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed whitespace-pre-wrap">
+            {note}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

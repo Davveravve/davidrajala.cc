@@ -130,6 +130,13 @@ model Order {
   currency            String      @default("SEK")
   /// "pending" | "paid" | "failed" | "refunded"
   status              String      @default("pending")
+  /// True when admin gifted this order (vs. real Stripe purchase).
+  isGift              Boolean     @default(false)
+  /// Optional message from admin attached to a gifted order.
+  giftNote            String      @default("")
+  /// Customer-side notification flag — set when a gift is created,
+  /// cleared once the customer opens the order detail.
+  notifyCustomer      Boolean     @default(false)
   stripeSessionId     String?     @unique
   stripePaymentIntent String?
   paidAt              DateTime?
@@ -139,6 +146,7 @@ model Order {
 
   @@index([customerId])
   @@index([status])
+  @@index([customerId, notifyCustomer])
 }
 
 model OrderItem {
@@ -225,7 +233,14 @@ model ContactMessage {
   createdAt DateTime @default(now())
   read      Boolean  @default(false)
   saved     Boolean  @default(false)
+  /// "customer" (default — message sent by visitor) | "admin" (reply from owner)
+  senderType String  @default("customer")
+  /// Stable per-conversation key — by default the customer email lowercased.
+  /// Lets us group messages into threads even before customer accounts existed.
+  threadKey String   @default("")
   contacts  ContactDetail[]
+
+  @@index([threadKey, createdAt])
 }
 
 model ContactDetail {

@@ -82,17 +82,18 @@ export async function syncOrderFromStripe(orderId: string) {
 const giftSchema = z.object({
   customerId: z.string().min(1),
   productId: z.string().min(1),
-  note: z.string().max(500).default(""),
+  noteToCustomer: z.string().max(500).default(""),
 });
 
 /// Creates a fully-paid Order on a customer's behalf — used for giveaways,
-/// support comps, or when the owner wants to manually grant access.
+/// support comps, or when the owner wants to manually grant access. The
+/// customer sees a notification and the gift note on their /store/account.
 export async function giftOrderToCustomer(formData: FormData) {
   await ensureAdmin();
   const data = giftSchema.parse({
     customerId: formData.get("customerId"),
     productId: formData.get("productId"),
-    note: formData.get("note") ?? "",
+    noteToCustomer: formData.get("noteToCustomer") ?? "",
   });
 
   const [customer, product] = await Promise.all([
@@ -108,6 +109,9 @@ export async function giftOrderToCustomer(formData: FormData) {
       totalAmount: 0,
       currency: product.currency,
       status: "paid",
+      isGift: true,
+      giftNote: data.noteToCustomer,
+      notifyCustomer: true,
       paidAt: new Date(),
       items: {
         create: {
@@ -123,11 +127,23 @@ export async function giftOrderToCustomer(formData: FormData) {
   await logActivity("order.gift", {
     entityType: "order",
     entityId: order.id,
-    label: `${product.title} → ${customer.email}${data.note ? ` (${data.note})` : ""}`,
+    label: `${product.title} → ${customer.email}${data.noteToCustomer ? ` (${data.noteToCustomer})` : ""}`,
   });
 
   revalidatePath("/admin/store/orders");
-  revalidatePath(`/admin/store/customers`);
+  revalidatePath("/admin/store/customers");
+  revalidatePath(`/admin/store/customers/${customer.id}`);
   revalidatePath("/store/account");
   redirect(`/admin/store/orders/${order.id}`);
+}
+
+/// Clears the customer-side notification flag — called when the customer
+/// opens the order detail page so the toast doesn't keep appearing.
+export async function dismissOrderNotice(orderId: string, customerId: string) {
+  // Self-call from customer-facing pages — no admin guard, but we verify
+  // ownership.
+  await prisma.order.updateMany({
+    where: { id: orderId, customerId },
+    data: { notifyCustomer: false },
+  });
 }

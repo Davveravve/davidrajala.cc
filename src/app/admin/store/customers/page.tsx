@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format-price";
@@ -66,38 +67,46 @@ export default async function AdminCustomersPage() {
               <li
                 key={c.id}
                 id={c.id}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--color-surface-2)]/40 transition-colors"
+                className="flex items-center gap-4 hover:bg-[var(--color-surface-2)]/40 transition-colors"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-sm font-medium flex-shrink-0">
-                  {(c.name || c.email)[0].toUpperCase()}
+                <Link
+                  href={`/admin/store/customers/${c.id}`}
+                  className="flex flex-1 items-center gap-4 px-5 py-4 min-w-0"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-sm font-medium flex-shrink-0">
+                    {(c.name || c.email)[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">
+                      {c.name || c.email.split("@")[0]}
+                    </div>
+                    <div className="text-xs text-[var(--color-fg-muted)] truncate">
+                      {c.email}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0 text-sm">
+                    <div className="tabular-nums">
+                      {formatPrice(lifetimeValue, currency)}
+                    </div>
+                    <div className="text-[11px] text-[var(--color-fg-dim)] tabular-nums">
+                      {c._count.orders}{" "}
+                      {c._count.orders === 1 ? "order" : "orders"}
+                    </div>
+                  </div>
+                  <time className="text-[11px] text-[var(--color-fg-dim)] tabular-nums flex-shrink-0">
+                    {new Date(c.createdAt).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </time>
+                </Link>
+                <div className="pr-3">
+                  <GiftOrderButton
+                    customerId={c.id}
+                    customerLabel={c.name || c.email}
+                    products={products}
+                  />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">
-                    {c.name || c.email.split("@")[0]}
-                  </div>
-                  <div className="text-xs text-[var(--color-fg-muted)] truncate">
-                    {c.email}
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0 text-sm">
-                  <div className="tabular-nums">
-                    {formatPrice(lifetimeValue, currency)}
-                  </div>
-                  <div className="text-[11px] text-[var(--color-fg-dim)] tabular-nums">
-                    {c._count.orders} {c._count.orders === 1 ? "order" : "orders"}
-                  </div>
-                </div>
-                <time className="text-[11px] text-[var(--color-fg-dim)] tabular-nums flex-shrink-0">
-                  {new Date(c.createdAt).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </time>
-                <GiftOrderButton
-                  customerId={c.id}
-                  customerLabel={c.name || c.email}
-                  products={products}
-                />
               </li>
             );
           })}

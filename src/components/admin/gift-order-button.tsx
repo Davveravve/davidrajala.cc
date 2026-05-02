@@ -104,15 +104,18 @@ export function GiftOrderButton({
 
               <label className="block">
                 <span className="block text-xs font-medium text-[var(--color-fg-muted)] mb-1.5">
-                  Note (optional, only stored in activity log)
+                  Message to customer (optional)
                 </span>
-                <input
-                  type="text"
-                  name="note"
-                  maxLength={200}
-                  placeholder="e.g. press copy"
-                  className="w-full px-3 py-2.5 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] placeholder:text-[var(--color-fg-dim)] focus:border-[var(--color-accent)] focus:outline-none text-sm"
+                <textarea
+                  name="noteToCustomer"
+                  maxLength={500}
+                  rows={3}
+                  placeholder="Hey! Thanks for being awesome — here's a copy on me."
+                  className="w-full px-3 py-2.5 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] placeholder:text-[var(--color-fg-dim)] focus:border-[var(--color-accent)] focus:outline-none text-sm resize-y"
                 />
+                <span className="block text-[11px] text-[var(--color-fg-muted)] mt-1.5">
+                  Shown to the customer on their order page.
+                </span>
               </label>
 
               {error && (
