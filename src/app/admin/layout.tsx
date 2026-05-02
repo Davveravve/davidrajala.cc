@@ -1,4 +1,5 @@
 import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminToaster } from "@/components/notifications/admin-toaster";
 import { auth } from "@/lib/auth";
 
 export const metadata = {
@@ -17,5 +18,10 @@ export default async function AdminLayout({
     return <>{children}</>;
   }
 
-  return <AdminShell email={session.user.email ?? ""}>{children}</AdminShell>;
+  return (
+    <>
+      <AdminShell email={session.user.email ?? ""}>{children}</AdminShell>
+      <AdminToaster />
+    </>
+  );
 }

@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { Reveal } from "@/components/ui/reveal";
 import { formatPrice, formatFileSize, categoryLabel } from "@/lib/format-price";
 import { BuyButton } from "@/components/store/buy-button";
+import { OwnedDownloadButton } from "@/components/store/owned-download-button";
+import { getCurrentCustomer } from "@/lib/customer-auth";
+import { MAX_DOWNLOADS } from "@/lib/download-tokens";
 
 export async function generateMetadata({
   params,
@@ -44,6 +47,22 @@ export default async function StoreProductPage({
     .map((p) => p.trim())
     .filter(Boolean);
 
+  const customer = await getCurrentCustomer();
+  const ownedItem = customer
+    ? await prisma.orderItem.findFirst({
+        where: {
+          productId: product.id,
+          order: { customerId: customer.id, status: "paid" },
+        },
+        include: { order: { select: { id: true } } },
+        orderBy: { createdAt: "desc" },
+      })
+    : null;
+  const remaining = ownedItem
+    ? Math.max(0, MAX_DOWNLOADS - ownedItem.downloadCount)
+    : 0;
+  const owns = !!ownedItem;
+
   return (
     <article className="relative">
       <section className="relative pt-32 pb-12 overflow-hidden">
@@ -51,7 +70,7 @@ export default async function StoreProductPage({
         <div className="container-page relative">
           <Link
             href="/store"
-            className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.08em] font-medium text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] transition-colors mb-12 group"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] transition-colors mb-12 group"
           >
             <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
             All store items
@@ -96,6 +115,11 @@ export default async function StoreProductPage({
               )}
 
               <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 space-y-5">
+                {owns && !product.externalUrl && (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
+                    Owned
+                  </span>
+                )}
                 <div className="flex items-baseline justify-between">
                   <span className="font-display text-3xl font-medium tabular-nums">
                     {formatPrice(product.price, product.currency)}
@@ -103,6 +127,9 @@ export default async function StoreProductPage({
                   {product.fileSize > 0 && (
                     <span className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
                       {formatFileSize(product.fileSize)}
+                      {owns && !product.externalUrl && (
+                        <> · {remaining} downloads remaining</>
+                      )}
                     </span>
                   )}
                 </div>
@@ -117,6 +144,12 @@ export default async function StoreProductPage({
                     <ExternalLinkIcon size={14} />
                     Buy on external site
                   </a>
+                ) : ownedItem ? (
+                  <OwnedDownloadButton
+                    orderItemId={ownedItem.id}
+                    orderId={ownedItem.order.id}
+                    remaining={remaining}
+                  />
                 ) : (
                   <BuyButton productId={product.id} title={product.title} />
                 )}

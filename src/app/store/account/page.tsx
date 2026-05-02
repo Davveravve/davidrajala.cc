@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Download, ShoppingBag, LogOut } from "lucide-react";
+import { Download, ShoppingBag, LogOut, Settings } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { customerLogoutAction } from "@/app/store/_actions";
@@ -49,15 +49,24 @@ export default async function StoreAccountPage() {
             </h1>
             <p className="mt-2 text-sm text-[var(--color-fg-muted)]">{customer.email}</p>
           </div>
-          <form action={customerLogoutAction}>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+          <div className="flex items-center gap-2">
+            <Link
+              href="/store/account/profile"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface-2)] transition-colors"
             >
-              <LogOut size={13} />
-              Sign out
-            </button>
-          </form>
+              <Settings size={13} />
+              Edit profile
+            </Link>
+            <form action={customerLogoutAction}>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <LogOut size={13} />
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
 
         <Section title="Downloads" subtitle={`${downloadEntries.length} available`}>

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentCustomer } from "@/lib/customer-auth";
-import { CustomerAuthForm } from "@/components/store/customer-auth-form";
+import { ForgotPasswordForm } from "@/components/store/forgot-password-form";
 
-export const metadata = { title: "Sign in" };
+export const metadata = { title: "Reset password" };
 
-export default async function StoreLoginPage() {
+export default async function ForgotPasswordPage() {
   const customer = await getCurrentCustomer();
   if (customer) redirect("/store/account");
 
@@ -19,31 +19,22 @@ export default async function StoreLoginPage() {
             Store account
           </div>
           <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight">
-            Welcome back
+            Reset your password
           </h1>
           <p className="mt-3 text-sm text-[var(--color-fg-muted)]">
-            Sign in to access your downloads.
+            Enter your email — we&apos;ll send a reset link if an account exists.
           </p>
         </div>
 
-        <CustomerAuthForm mode="login" />
+        <ForgotPasswordForm />
 
-        <p className="mt-4 text-center text-sm">
+        <p className="mt-6 text-center text-sm text-[var(--color-fg-muted)]">
+          Remembered it?{" "}
           <Link
-            href="/store/forgot-password"
-            className="text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] transition-colors"
-          >
-            Forgot password?
-          </Link>
-        </p>
-
-        <p className="mt-4 text-center text-sm text-[var(--color-fg-muted)]">
-          Don&apos;t have an account yet?{" "}
-          <Link
-            href="/store/signup"
+            href="/store/login"
             className="text-[var(--color-accent)] hover:underline"
           >
-            Create one
+            Sign in
           </Link>
         </p>
       </div>

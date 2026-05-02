@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useChat } from "./chat-context";
 import { sendChatMessage } from "@/app/_actions/contact";
+import { threadKeyFor } from "@/lib/chat-thread";
 import {
   CONTACT_TYPES,
   getContactMeta,
@@ -42,6 +43,23 @@ type AddedContact = {
   label?: string;
 };
 
+type ChatPanelCustomer = {
+  name: string;
+  email: string;
+  twitter?: string;
+  github?: string;
+  linkedin?: string;
+  website?: string;
+};
+
+type ThreadMessage = {
+  id: string;
+  senderType: "customer" | "admin";
+  message: string;
+  createdAt: string;
+  name: string;
+};
+
 const ORDER: ContactTypeKey[] = [
   "mail",
   "phone",
@@ -53,6 +71,8 @@ const ORDER: ContactTypeKey[] = [
   "other",
 ];
 
+const POLL_INTERVAL_MS = 15_000;
+
 let nextUid = 1;
 const newUid = () => `c-${nextUid++}-${Date.now().toString(36)}`;
 
@@ -60,10 +80,12 @@ export function ChatPanel({
   avatarUrl,
   ownerName,
   available,
+  customer,
 }: {
   avatarUrl: string;
   ownerName: string;
   available: boolean;
+  customer: ChatPanelCustomer | null;
 }) {
   const { open, setOpen } = useChat();
   const [consent, setConsentState] = useState<Consent>(null);
@@ -80,9 +102,35 @@ export function ChatPanel({
   const messageRef = useRef<HTMLTextAreaElement>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
 
-  // hydrate from storage when opening
+  // Server-side thread (visible once we know the visitor's email).
+  const [threadMessages, setThreadMessages] = useState<ThreadMessage[]>([]);
+  const [threadKey, setThreadKey] = useState<string>("");
+
+  const isCustomer = !!customer;
+
+  // ── pre-fill from customer prop ────────────────────────────────────────
+  useEffect(() => {
+    if (!customer) return;
+    setName(customer.name?.trim() || customer.email);
+    const built: AddedContact[] = [];
+    if (customer.email) {
+      built.push({ uid: newUid(), type: "mail", value: customer.email });
+    }
+    if (customer.linkedin) {
+      built.push({ uid: newUid(), type: "linkedin", value: customer.linkedin });
+    }
+    if (customer.twitter) {
+      built.push({ uid: newUid(), type: "x", value: customer.twitter });
+    }
+    setContacts(built);
+    setThreadKey(threadKeyFor(customer.email));
+    setProfileLocked(true);
+  }, [customer]);
+
+  // ── hydrate from local storage when opening (non-customer) ─────────────
   useEffect(() => {
     if (!open) return;
+    if (isCustomer) return;
     const c = loadConsent();
     setConsentState(c);
     if (c === "yes") {
@@ -98,12 +146,16 @@ export function ChatPanel({
           })),
         );
         setProfileLocked(true);
+        const mailContact = p.contacts.find((c) => c.type === "mail");
+        if (mailContact?.value) {
+          setThreadKey(threadKeyFor(mailContact.value));
+        }
       }
       setHistory(loadHistory());
     } else {
       setHistory([]);
     }
-  }, [open]);
+  }, [open, isCustomer]);
 
   useEffect(() => {
     if (!open) return;
@@ -124,12 +176,43 @@ export function ChatPanel({
     }
   }, [open]);
 
-  // scroll conversation to bottom when new history arrives
+  // ── server thread polling ──────────────────────────────────────────────
+  const fetchThread = useCallback(async () => {
+    if (!threadKey) return;
+    try {
+      const res = await fetch(
+        `/api/chat/thread?key=${encodeURIComponent(threadKey)}`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) return;
+      const json = (await res.json()) as { messages: ThreadMessage[] };
+      if (Array.isArray(json.messages)) {
+        setThreadMessages(json.messages);
+      }
+    } catch {
+      // ignore — polling will retry
+    }
+  }, [threadKey]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!threadKey) return;
+    // initial pull
+    fetchThread();
+    const id = window.setInterval(fetchThread, POLL_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [open, threadKey, fetchThread]);
+
+  // Show the thread either when the customer is logged in OR after the
+  // visitor has sent at least one message in this session.
+  const threadMode = isCustomer || threadMessages.length > 0 || history.length > 0;
+
+  // scroll on new messages while open
   useEffect(() => {
     if (!open) return;
     const el = conversationRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [history.length, open]);
+  }, [history.length, threadMessages.length, open]);
 
   function close() {
     setOpen(false);
@@ -180,6 +263,8 @@ export function ChatPanel({
     setName("");
     setContacts([]);
     setHistory([]);
+    setThreadMessages([]);
+    setThreadKey("");
     setProfileLocked(false);
     setSettingsOpen(false);
   }
@@ -197,10 +282,15 @@ export function ChatPanel({
       setError("Enter your name");
       return;
     }
-    if (message.trim().length < 5) {
-      setError("Message is too short");
+    if (message.trim().length < 1) {
+      setError("Message is empty");
       return;
     }
+    // Server enforces min(5) but in thread mode we allow short follow-ups by
+    // padding silently if needed.
+    const messageText =
+      message.trim().length < 5 ? message.trim().padEnd(5, " ") : message.trim();
+
     const validContacts = contacts.filter((c) => c.value.trim().length > 0);
     if (validContacts.length === 0) {
       setError("Add at least one way to reach you");
@@ -216,7 +306,7 @@ export function ChatPanel({
     startTransition(async () => {
       const res = await sendChatMessage({
         name: name.trim(),
-        message: message.trim(),
+        message: messageText,
         contacts: payloadContacts,
       });
       if (!res.ok) {
@@ -224,8 +314,14 @@ export function ChatPanel({
         return;
       }
 
-      // local history + profile (only if consent given)
-      if (consent === "yes") {
+      const mailContact = payloadContacts.find((c) => c.type === "mail");
+      if (mailContact?.value) {
+        const tk = threadKeyFor(mailContact.value);
+        setThreadKey(tk);
+      }
+
+      // local history + profile (only if consent given AND not customer)
+      if (consent === "yes" && !isCustomer) {
         const stored: StoredMessage = {
           id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           message: message.trim(),
@@ -238,11 +334,32 @@ export function ChatPanel({
         setProfileLocked(true);
       }
 
+      // Optimistically append to thread view too
+      setThreadMessages((prev) => [
+        ...prev,
+        {
+          id: `local-${Date.now()}`,
+          senderType: "customer",
+          message: message.trim(),
+          createdAt: new Date().toISOString(),
+          name: name.trim(),
+        },
+      ]);
+
       setMessage("");
       setJustSent(true);
       setTimeout(() => setJustSent(false), 2200);
+
+      // Re-pull immediately so any server-side normalisation (e.g. an
+      // auto-reply) shows up.
+      void fetchThread();
     });
   }
+
+  const ownedContactDisplay = useMemo(() => {
+    if (!isCustomer) return null;
+    return customer.email;
+  }, [customer, isCustomer]);
 
   return (
     <AnimatePresence>
@@ -284,7 +401,7 @@ export function ChatPanel({
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {consent === "yes" && (
+                {consent === "yes" && !isCustomer && (
                   <button
                     type="button"
                     onClick={() => setSettingsOpen((v) => !v)}
@@ -333,20 +450,29 @@ export function ChatPanel({
 
             <div
               ref={conversationRef}
-              className="flex-1 overflow-y-auto px-6 py-5 space-y-5"
+              className="flex-1 overflow-y-auto px-6 py-5 space-y-4"
+              style={{ maxHeight: "calc(100vh - 0px)" }}
             >
               <WelcomeBubble ownerName={ownerName} avatarUrl={avatarUrl} />
 
-              <AnimatePresence initial={false}>
-                {history.map((m) => (
-                  <UserBubble
-                    key={m.id}
-                    message={m.message}
-                    createdAt={m.createdAt}
-                    contacts={m.contacts}
-                  />
-                ))}
-              </AnimatePresence>
+              {threadMode ? (
+                <ThreadView
+                  messages={threadMessages}
+                  fallbackHistory={history}
+                  ownerName={ownerName}
+                />
+              ) : (
+                <AnimatePresence initial={false}>
+                  {history.map((m) => (
+                    <UserBubble
+                      key={m.id}
+                      message={m.message}
+                      createdAt={m.createdAt}
+                      contacts={m.contacts}
+                    />
+                  ))}
+                </AnimatePresence>
+              )}
 
               {justSent && (
                 <motion.div
@@ -364,11 +490,22 @@ export function ChatPanel({
               onSubmit={submit}
               className="border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)]"
             >
-              {consent === null && (
+              {!isCustomer && consent === null && (
                 <ConsentBanner onAccept={() => handleConsent("yes")} onDecline={() => handleConsent("no")} />
               )}
 
-              {profileLocked && consent === "yes" ? (
+              {isCustomer && ownedContactDisplay ? (
+                <div className="px-6 pt-4">
+                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-3 py-2 text-[11px] text-[var(--color-fg-muted)] flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--color-accent)]/15 text-[var(--color-accent)] text-[10px] font-medium flex-shrink-0">
+                      {(customer.name || customer.email)[0]?.toUpperCase()}
+                    </span>
+                    <span className="flex-1 min-w-0 truncate">
+                      Contact: <span className="text-[var(--color-fg)]">{ownedContactDisplay}</span>
+                    </span>
+                  </div>
+                </div>
+              ) : profileLocked && consent === "yes" ? (
                 <ProfileSummary
                   name={name}
                   contacts={contacts}
@@ -550,6 +687,111 @@ function WelcomeBubble({
         </p>
       </div>
     </div>
+  );
+}
+
+function ThreadView({
+  messages,
+  fallbackHistory,
+  ownerName,
+}: {
+  messages: ThreadMessage[];
+  fallbackHistory: StoredMessage[];
+  ownerName: string;
+}) {
+  // Pull a stable rendered list. If the server thread is empty (e.g. user
+  // declined consent and lost local state), fall back to in-session history.
+  const renderable: ThreadMessage[] = messages.length
+    ? messages
+    : fallbackHistory.map((h) => ({
+        id: h.id,
+        senderType: "customer" as const,
+        message: h.message,
+        createdAt: h.createdAt,
+        name: "You",
+      }));
+
+  if (renderable.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      {renderable.map((m) =>
+        m.senderType === "admin" ? (
+          <AdminThreadBubble
+            key={m.id}
+            message={m.message}
+            createdAt={m.createdAt}
+            ownerName={ownerName}
+          />
+        ) : (
+          <CustomerThreadBubble
+            key={m.id}
+            message={m.message}
+            createdAt={m.createdAt}
+          />
+        ),
+      )}
+    </div>
+  );
+}
+
+function CustomerThreadBubble({
+  message,
+  createdAt,
+}: {
+  message: string;
+  createdAt: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex justify-end"
+    >
+      <div className="max-w-[85%]">
+        <div className="rounded-2xl rounded-tr-sm bg-[var(--color-accent)] text-[var(--color-bg)] px-4 py-3 shadow-[0_0_24px_rgba(var(--color-accent-rgb),0.18)]">
+          <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{message}</p>
+        </div>
+        <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-[var(--color-fg-dim)]">
+          <span>{formatTime(createdAt)}</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function AdminThreadBubble({
+  message,
+  createdAt,
+  ownerName,
+}: {
+  message: string;
+  createdAt: string;
+  ownerName: string;
+}) {
+  const initial = ownerName.trim()[0]?.toUpperCase() ?? "?";
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex items-start gap-3"
+    >
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] text-xs font-semibold flex-shrink-0">
+        {initial}
+      </div>
+      <div className="max-w-[85%]">
+        <div className="rounded-2xl rounded-tl-sm bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-3 text-[var(--color-fg)]">
+          <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{message}</p>
+        </div>
+        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--color-fg-dim)]">
+          <span>{ownerName.split(" ")[0]}</span>
+          <span>·</span>
+          <span>{formatTime(createdAt)}</span>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 

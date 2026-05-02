@@ -6,6 +6,7 @@ import { ScrollProgress } from "@/components/scroll-progress";
 import { TopLoadingBar } from "@/components/top-loading-bar";
 import { ChatProvider } from "@/components/chat/chat-context";
 import { ChatPanel } from "@/components/chat/chat-panel";
+import { CustomerToaster } from "@/components/notifications/customer-toaster";
 import { getAboutMe, getSiteSettings } from "@/lib/queries";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import "./globals.css";
@@ -110,6 +111,7 @@ export default async function RootLayout({
         <ChatProvider>
           <ScrollProgress />
           <TopLoadingBar />
+          <CustomerToaster signedIn={!!customer} />
           <SiteHeader customer={headerCustomer} />
           <main className="relative" style={{ viewTransitionName: "page" }}>
             {children}
@@ -131,6 +133,18 @@ export default async function RootLayout({
             avatarUrl={about.avatarUrl}
             ownerName={about.name}
             available={about.available}
+            customer={
+              customer
+                ? {
+                    name: customer.name,
+                    email: customer.email,
+                    twitter: customer.twitter,
+                    github: customer.github,
+                    linkedin: customer.linkedin,
+                    website: customer.website,
+                  }
+                : null
+            }
           />
         </ChatProvider>
       </body>

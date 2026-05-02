@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ensureAdmin } from "@/lib/admin-guard";
 import { logActivity } from "@/lib/activity";
+import { ADMIN_SENDER } from "@/lib/chat-thread";
 
 export async function markMessageRead(id: string, read: boolean) {
   await ensureAdmin();
@@ -52,4 +53,61 @@ export async function deleteMessages(ids: string[]) {
   });
   revalidatePath("/admin/messages");
   revalidatePath("/admin");
+}
+
+/**
+ * Admin-side reply into an existing thread. Looks up an existing customer
+ * message in the same thread to copy the visitor's name + email into the
+ * reply row, so the reply joins the same threadKey grouping query.
+ */
+export async function replyToThread(
+  threadKey: string,
+  message: string,
+): Promise<{ ok: true; id: string; createdAt: string } | { ok: false; error: string }> {
+  await ensureAdmin();
+  const text = message.trim();
+  if (!text) {
+    return { ok: false, error: "Message is empty" };
+  }
+  if (text.length > 5000) {
+    return { ok: false, error: "Message is too long" };
+  }
+  if (!threadKey || !threadKey.trim()) {
+    return { ok: false, error: "No conversation" };
+  }
+
+  const original = await prisma.contactMessage.findFirst({
+    where: { threadKey },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!original) {
+    throw new Error("No conversation");
+  }
+
+  const created = await prisma.contactMessage.create({
+    data: {
+      name: original.name,
+      email: original.email,
+      message: text,
+      senderType: ADMIN_SENDER,
+      threadKey,
+      read: true,
+    },
+  });
+
+  await logActivity("chat.reply", {
+    entityType: "message",
+    entityId: created.id,
+    label: text.slice(0, 60),
+  });
+
+  revalidatePath("/admin/messages");
+  revalidatePath("/admin");
+  revalidatePath("/store/account");
+
+  return {
+    ok: true,
+    id: created.id,
+    createdAt: created.createdAt.toISOString(),
+  };
 }

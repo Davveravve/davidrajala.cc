@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { notifyNewMessage } from "@/lib/telegram";
+import { CUSTOMER_SENDER, threadKeyFor } from "@/lib/chat-thread";
 
 const detailSchema = z.object({
   type: z.string().min(1).max(40),
@@ -118,6 +119,8 @@ export async function sendChatMessage(
       name: data.name,
       email: primaryEmail,
       message: data.message,
+      senderType: CUSTOMER_SENDER,
+      threadKey: threadKeyFor(primaryEmail),
       contacts: {
         create: data.contacts.map((c) => ({
           type: c.type,

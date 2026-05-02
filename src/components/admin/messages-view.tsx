@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
@@ -15,6 +15,7 @@ import {
   Copy,
   CheckSquare,
   X,
+  Send,
 } from "lucide-react";
 import {
   markMessageRead,
@@ -22,6 +23,7 @@ import {
   deleteMessage,
   markMessagesRead,
   deleteMessages,
+  replyToThread,
 } from "@/app/_actions/messages";
 import { ConfirmDialog } from "./confirm-dialog";
 import { getContactMeta } from "@/lib/contact-types";
@@ -33,74 +35,101 @@ type ContactDetail = {
   label: string;
 };
 
-type Msg = {
+export type ThreadMsg = {
   id: string;
-  name: string;
   message: string;
+  senderType: "customer" | "admin";
   read: boolean;
   saved: boolean;
   createdAt: string;
+  name: string;
+};
+
+export type Thread = {
+  threadKey: string;
+  /** representative id (latest message) used for selection */
+  id: string;
+  name: string;
+  email: string;
+  lastMessage: string;
+  lastSenderType: "customer" | "admin";
+  lastCreatedAt: string;
+  unreadCount: number;
+  saved: boolean;
   contacts: ContactDetail[];
+  messages: ThreadMsg[];
 };
 
 type View = "inbox" | "read" | "saved";
 
 export function MessagesView({
-  messages,
+  threads,
   view,
 }: {
-  messages: Msg[];
+  threads: Thread[];
   view: View;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(
-    messages[0]?.id ?? null,
+  const [selectedKey, setSelectedKey] = useState<string | null>(
+    threads[0]?.threadKey ?? null,
   );
-  const [pendingDelete, setPendingDelete] = useState<Msg | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Thread | null>(null);
   const [selectMode, setSelectMode] = useState(false);
-  const [bulkIds, setBulkIds] = useState<Set<string>>(new Set());
+  const [bulkKeys, setBulkKeys] = useState<Set<string>>(new Set());
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
   const [, startTransition] = useTransition();
 
+  // Local thread overlay so admin replies appear instantly without a round-trip.
+  const [localMessages, setLocalMessages] = useState<Record<string, ThreadMsg[]>>(
+    {},
+  );
+
   function exitSelect() {
     setSelectMode(false);
-    setBulkIds(new Set());
+    setBulkKeys(new Set());
   }
 
-  function toggleId(id: string) {
-    setBulkIds((prev) => {
+  function toggleKey(key: string) {
+    setBulkKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
 
-  // sync selected when messages change
+  // sync selected when threads change
   useEffect(() => {
-    if (messages.length === 0) {
-      setSelectedId(null);
+    if (threads.length === 0) {
+      setSelectedKey(null);
       return;
     }
-    if (!messages.find((m) => m.id === selectedId)) {
-      setSelectedId(messages[0].id);
+    if (!threads.find((t) => t.threadKey === selectedKey)) {
+      setSelectedKey(threads[0].threadKey);
     }
-  }, [messages, selectedId]);
+  }, [threads, selectedKey]);
 
   const selected = useMemo(
-    () => messages.find((m) => m.id === selectedId) ?? null,
-    [messages, selectedId],
+    () => threads.find((t) => t.threadKey === selectedKey) ?? null,
+    [threads, selectedKey],
   );
 
-  if (messages.length === 0) {
-    return (
-      <EmptyState view={view} />
-    );
+  if (threads.length === 0) {
+    return <EmptyState view={view} />;
   }
 
-  const showList = !selectedId;
-  const showConvo = !!selectedId;
+  const showList = !selectedKey;
+  const showConvo = !!selectedKey;
 
-  const ids = Array.from(bulkIds);
+  const bulkIds = selected
+    ? Array.from(bulkKeys).flatMap((key) => {
+        const t = threads.find((x) => x.threadKey === key);
+        return t ? t.messages.map((m) => m.id) : [];
+      })
+    : [];
+
+  const selectedMessages: ThreadMsg[] = selected
+    ? [...selected.messages, ...(localMessages[selected.threadKey] ?? [])]
+    : [];
 
   return (
     <>
@@ -114,7 +143,7 @@ export function MessagesView({
             {selectMode ? (
               <>
                 <span className="text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
-                  {bulkIds.size} selected
+                  {bulkKeys.size} selected
                 </span>
                 <button
                   type="button"
@@ -128,7 +157,7 @@ export function MessagesView({
             ) : (
               <>
                 <span className="text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
-                  {messages.length} message{messages.length === 1 ? "" : "s"}
+                  {threads.length} conversation{threads.length === 1 ? "" : "s"}
                 </span>
                 <button
                   type="button"
@@ -142,16 +171,16 @@ export function MessagesView({
             )}
           </div>
           <ul className="divide-y divide-[var(--color-border)] max-h-[70vh] overflow-y-auto">
-            {messages.map((m) => (
+            {threads.map((t) => (
               <ListItem
-                key={m.id}
-                msg={m}
-                active={m.id === selectedId}
+                key={t.threadKey}
+                thread={t}
+                active={t.threadKey === selectedKey}
                 selectMode={selectMode}
-                checked={bulkIds.has(m.id)}
+                checked={bulkKeys.has(t.threadKey)}
                 onClick={() => {
-                  if (selectMode) toggleId(m.id);
-                  else setSelectedId(m.id);
+                  if (selectMode) toggleKey(t.threadKey);
+                  else setSelectedKey(t.threadKey);
                 }}
               />
             ))}
@@ -166,7 +195,7 @@ export function MessagesView({
           <AnimatePresence mode="wait">
             {selected && (
               <motion.div
-                key={selected.id}
+                key={selected.threadKey}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
@@ -174,36 +203,61 @@ export function MessagesView({
                 className="flex flex-col h-full"
               >
                 <ConversationHeader
-                  msg={selected}
-                  onBack={() => setSelectedId(null)}
+                  thread={selected}
+                  onBack={() => setSelectedKey(null)}
                   onSavedToggle={() =>
                     startTransition(() =>
                       setMessageSaved(selected.id, !selected.saved),
                     )
                   }
                   onToggleRead={() =>
-                    startTransition(() => markMessageRead(selected.id, !selected.read))
+                    startTransition(async () => {
+                      // Mark all unread customer messages in the thread as read
+                      const unreadIds = selected.messages
+                        .filter((m) => m.senderType === "customer" && !m.read)
+                        .map((m) => m.id);
+                      if (selected.unreadCount > 0 && unreadIds.length > 0) {
+                        await markMessagesRead(unreadIds, true);
+                      } else {
+                        await markMessageRead(selected.id, false);
+                      }
+                    })
                   }
                   onDelete={() => setPendingDelete(selected)}
                 />
-                <ConversationBody msg={selected} />
+                <ConversationBody
+                  thread={selected}
+                  messages={selectedMessages}
+                />
+                <ReplyComposer
+                  threadKey={selected.threadKey}
+                  onSent={(msg) => {
+                    setLocalMessages((prev) => {
+                      const list = prev[selected.threadKey] ?? [];
+                      return {
+                        ...prev,
+                        [selected.threadKey]: [...list, msg],
+                      };
+                    });
+                  }}
+                />
               </motion.div>
             )}
           </AnimatePresence>
         </section>
       </div>
 
-      {selectMode && bulkIds.size > 0 && (
+      {selectMode && bulkKeys.size > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
           <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)]/95 backdrop-blur-md px-3 py-2 shadow-2xl">
             <span className="px-3 text-[12px] text-[var(--color-fg-muted)] tabular-nums">
-              {bulkIds.size} selected
+              {bulkKeys.size} selected
             </span>
             <button
               type="button"
               onClick={() =>
                 startTransition(async () => {
-                  await markMessagesRead(ids, true);
+                  await markMessagesRead(bulkIds, true);
                   exitSelect();
                 })
               }
@@ -216,7 +270,7 @@ export function MessagesView({
               type="button"
               onClick={() =>
                 startTransition(async () => {
-                  await markMessagesRead(ids, false);
+                  await markMessagesRead(bulkIds, false);
                   exitSelect();
                 })
               }
@@ -247,10 +301,10 @@ export function MessagesView({
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title="Delete message"
+        title="Delete conversation"
         description={
           pendingDelete
-            ? `Delete the message from "${pendingDelete.name}"?`
+            ? `Delete the entire conversation with "${pendingDelete.name}"? All ${pendingDelete.messages.length} message${pendingDelete.messages.length === 1 ? "" : "s"} will be removed.`
             : undefined
         }
         confirmLabel="Delete"
@@ -258,20 +312,20 @@ export function MessagesView({
         onCancel={() => setPendingDelete(null)}
         onConfirm={async () => {
           if (!pendingDelete) return;
-          await deleteMessage(pendingDelete.id);
+          await deleteMessages(pendingDelete.messages.map((m) => m.id));
           setPendingDelete(null);
         }}
       />
 
       <ConfirmDialog
         open={pendingBulkDelete}
-        title="Delete messages"
-        description={`Delete ${bulkIds.size} selected message${bulkIds.size === 1 ? "" : "s"}? This cannot be undone.`}
+        title="Delete conversations"
+        description={`Delete ${bulkKeys.size} selected conversation${bulkKeys.size === 1 ? "" : "s"}? This cannot be undone.`}
         confirmLabel="Delete"
         destructive
         onCancel={() => setPendingBulkDelete(false)}
         onConfirm={async () => {
-          await deleteMessages(ids);
+          await deleteMessages(bulkIds);
           setPendingBulkDelete(false);
           exitSelect();
         }}
@@ -281,20 +335,24 @@ export function MessagesView({
 }
 
 function ListItem({
-  msg,
+  thread,
   active,
   selectMode,
   checked,
   onClick,
 }: {
-  msg: Msg;
+  thread: Thread;
   active: boolean;
   selectMode: boolean;
   checked: boolean;
   onClick: () => void;
 }) {
-  const initial = msg.name.trim()[0]?.toUpperCase() ?? "?";
-  const time = formatRelative(msg.createdAt);
+  const initial = thread.name.trim()[0]?.toUpperCase() ?? "?";
+  const time = formatRelative(thread.lastCreatedAt);
+  const preview =
+    thread.lastSenderType === "admin"
+      ? `You: ${thread.lastMessage}`
+      : thread.lastMessage;
 
   return (
     <li>
@@ -325,31 +383,38 @@ function ListItem({
         )}
         <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-sm font-medium flex-shrink-0">
           {initial}
-          {!msg.read && (
+          {thread.unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--color-accent)] border-2 border-[var(--color-surface)]" />
           )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-0.5">
-            <span className={`truncate text-sm ${msg.read ? "" : "font-semibold"}`}>
-              {msg.name}
+            <span
+              className={`truncate text-sm ${thread.unreadCount > 0 ? "font-semibold" : ""}`}
+            >
+              {thread.name}
             </span>
             <span className="text-[10px] text-[var(--color-fg-dim)] tabular-nums flex-shrink-0">
               {time}
             </span>
           </div>
           <p className="text-xs text-[var(--color-fg-muted)] line-clamp-2 leading-snug">
-            {msg.message}
+            {preview}
           </p>
           <div className="flex items-center gap-1.5 mt-1.5">
-            {msg.saved && (
+            {thread.saved && (
               <Star
                 size={11}
                 className="text-[var(--color-accent)]"
                 fill="currentColor"
               />
             )}
-            {msg.contacts.slice(0, 4).map((c) => {
+            {thread.messages.length > 1 && (
+              <span className="text-[10px] text-[var(--color-fg-dim)]">
+                {thread.messages.length} messages
+              </span>
+            )}
+            {thread.contacts.slice(0, 4).map((c) => {
               const meta = getContactMeta(c.type);
               const Icon = meta.icon;
               return (
@@ -362,9 +427,9 @@ function ListItem({
                 </span>
               );
             })}
-            {msg.contacts.length > 4 && (
+            {thread.contacts.length > 4 && (
               <span className="text-[10px] text-[var(--color-fg-dim)]">
-                +{msg.contacts.length - 4}
+                +{thread.contacts.length - 4}
               </span>
             )}
           </div>
@@ -375,13 +440,13 @@ function ListItem({
 }
 
 function ConversationHeader({
-  msg,
+  thread,
   onBack,
   onSavedToggle,
   onToggleRead,
   onDelete,
 }: {
-  msg: Msg;
+  thread: Thread;
   onBack: () => void;
   onSavedToggle: () => void;
   onToggleRead: () => void;
@@ -399,35 +464,35 @@ function ConversationHeader({
           <ArrowLeft size={16} />
         </button>
         <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] font-medium flex-shrink-0">
-          {msg.name.trim()[0]?.toUpperCase() ?? "?"}
+          {thread.name.trim()[0]?.toUpperCase() ?? "?"}
         </div>
         <div className="min-w-0">
-          <h2 className="font-display text-lg font-medium truncate">{msg.name}</h2>
+          <h2 className="font-display text-lg font-medium truncate">{thread.name}</h2>
           <div className="flex items-center gap-2 text-[11px] text-[var(--color-fg-muted)] mt-0.5">
             <Clock size={11} />
-            <span>{formatFull(msg.createdAt)}</span>
+            <span>{formatFull(thread.lastCreatedAt)}</span>
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-1 flex-shrink-0">
         <IconButton
-          tip={msg.saved ? "Saved" : "Save"}
+          tip={thread.saved ? "Saved" : "Save"}
           onClick={onSavedToggle}
-          active={msg.saved}
+          active={thread.saved}
           activeClass="text-[var(--color-accent)]"
         >
           <Star
             size={14}
-            fill={msg.saved ? "currentColor" : "transparent"}
+            fill={thread.saved ? "currentColor" : "transparent"}
           />
         </IconButton>
         <IconButton
-          tip={msg.read ? "Mark unread" : "Mark read"}
+          tip={thread.unreadCount === 0 ? "Mark unread" : "Mark read"}
           onClick={onToggleRead}
-          active={msg.read}
+          active={thread.unreadCount === 0}
         >
-          {msg.read ? <Mail size={14} /> : <CheckCheck size={14} />}
+          {thread.unreadCount === 0 ? <Mail size={14} /> : <CheckCheck size={14} />}
         </IconButton>
         <IconButton tip="Delete" onClick={onDelete} hoverClass="text-red-400 hover:bg-red-500/10">
           <Trash2 size={14} />
@@ -437,42 +502,168 @@ function ConversationHeader({
   );
 }
 
-function ConversationBody({ msg }: { msg: Msg }) {
-  return (
-    <div className="flex-1 flex flex-col p-4 md:p-6 gap-6 overflow-y-auto">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-xs font-medium flex-shrink-0">
-          {msg.name.trim()[0]?.toUpperCase() ?? "?"}
-        </div>
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-sm font-medium">{msg.name}</span>
-            <span className="text-[10px] text-[var(--color-fg-dim)]">
-              {formatRelative(msg.createdAt)}
-            </span>
-          </div>
-          <div className="rounded-2xl rounded-tl-sm bg-[var(--color-bg)] border border-[var(--color-border)] px-4 py-3 max-w-2xl">
-            <p className="text-[14px] leading-relaxed whitespace-pre-wrap text-[var(--color-fg)]">
-              {msg.message}
-            </p>
-          </div>
-        </div>
-      </div>
+function ConversationBody({
+  thread,
+  messages,
+}: {
+  thread: Thread;
+  messages: ThreadMsg[];
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-      {msg.contacts.length > 0 && (
-        <div className="border-t border-[var(--color-border)] pt-5">
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
+
+  return (
+    <div
+      ref={scrollRef}
+      className="flex-1 flex flex-col p-4 md:p-6 gap-4 overflow-y-auto"
+    >
+      {messages.map((m) => (
+        <MessageBubble key={m.id} msg={m} senderName={thread.name} />
+      ))}
+
+      {thread.contacts.length > 0 && (
+        <div className="border-t border-[var(--color-border)] pt-5 mt-2">
           <div className="text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] mb-3 flex items-center gap-3">
             <span className="h-px w-6 bg-[var(--color-fg-dim)]" />
             Contact details
           </div>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {msg.contacts.map((c) => (
+            {thread.contacts.map((c) => (
               <ContactCard key={c.id} contact={c} />
             ))}
           </ul>
         </div>
       )}
     </div>
+  );
+}
+
+function MessageBubble({
+  msg,
+  senderName,
+}: {
+  msg: ThreadMsg;
+  senderName: string;
+}) {
+  if (msg.senderType === "admin") {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%]">
+          <div className="rounded-2xl rounded-tr-sm bg-[var(--color-accent)]/15 border border-[var(--color-accent)]/35 text-[var(--color-fg)] px-4 py-3">
+            <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
+              {msg.message}
+            </p>
+          </div>
+          <div className="mt-1 flex items-center justify-end gap-1.5 text-[10px] text-[var(--color-fg-dim)]">
+            <span>You</span>
+            <span>·</span>
+            <span>{formatRelative(msg.createdAt)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const initial = senderName.trim()[0]?.toUpperCase() ?? "?";
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-xs font-medium flex-shrink-0">
+        {initial}
+      </div>
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-sm font-medium">{senderName}</span>
+          <span className="text-[10px] text-[var(--color-fg-dim)]">
+            {formatRelative(msg.createdAt)}
+          </span>
+        </div>
+        <div className="rounded-2xl rounded-tl-sm bg-[var(--color-bg)] border border-[var(--color-border)] px-4 py-3 max-w-2xl">
+          <p className="text-[14px] leading-relaxed whitespace-pre-wrap text-[var(--color-fg)]">
+            {msg.message}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReplyComposer({
+  threadKey,
+  onSent,
+}: {
+  threadKey: string;
+  onSent: (msg: ThreadMsg) => void;
+}) {
+  const [text, setText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    startTransition(async () => {
+      const res = await replyToThread(threadKey, trimmed);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      onSent({
+        id: res.id,
+        message: trimmed,
+        senderType: "admin",
+        read: true,
+        saved: false,
+        createdAt: res.createdAt,
+        name: "You",
+      });
+      setText("");
+    });
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="border-t border-[var(--color-border)] p-3 md:p-4 bg-[var(--color-surface-2)]/30"
+    >
+      <div className="flex items-end gap-2">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Write a reply…"
+          rows={2}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit();
+            }
+          }}
+          className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] text-[14px] placeholder:text-[var(--color-fg-dim)] focus:border-[var(--color-accent)] focus:outline-none transition-colors resize-y leading-relaxed"
+        />
+        <button
+          type="submit"
+          disabled={isPending || !text.trim()}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--color-accent)] text-[var(--color-bg)] font-medium text-[13px] hover:shadow-[0_0_24px_var(--color-accent-glow)] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isPending ? (
+            "Sending…"
+          ) : (
+            <>
+              <Send size={13} />
+              Send reply
+            </>
+          )}
+        </button>
+      </div>
+      {error && (
+        <div className="mt-2 text-[11px] text-red-400">{error}</div>
+      )}
+    </form>
   );
 }
 
@@ -585,12 +776,12 @@ function EmptyState({ view }: { view: View }) {
     },
     read: {
       title: "No read messages",
-      subtitle: "Messages you've read without saving end up here.",
+      subtitle: "Conversations you've read without saving end up here.",
       icon: <Check size={24} />,
     },
     saved: {
       title: "No saved messages",
-      subtitle: "Star important messages to find them quickly here.",
+      subtitle: "Star important conversations to find them quickly here.",
       icon: <Star size={24} />,
     },
   };
@@ -629,4 +820,3 @@ function formatFull(iso: string): string {
     minute: "2-digit",
   });
 }
-

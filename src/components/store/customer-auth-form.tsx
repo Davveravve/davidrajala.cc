@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { customerSignupAction, customerLoginAction } from "@/app/store/_actions";
 
 export function CustomerAuthForm({ mode }: { mode: "signup" | "login" }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [socialsOpen, setSocialsOpen] = useState(false);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -27,7 +28,7 @@ export function CustomerAuthForm({ mode }: { mode: "signup" | "login" }) {
       className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-7 space-y-5"
     >
       {mode === "signup" && (
-        <Field label="Name (optional)" name="name" type="text" autoComplete="name" />
+        <Field label="Name" name="name" type="text" autoComplete="name" required />
       )}
       <Field label="Email" name="email" type="email" autoComplete="email" required />
       <Field
@@ -38,6 +39,51 @@ export function CustomerAuthForm({ mode }: { mode: "signup" | "login" }) {
         required
         help={mode === "signup" ? "At least 8 characters." : undefined}
       />
+
+      {mode === "signup" && (
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setSocialsOpen((v) => !v)}
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] transition-colors"
+          >
+            {socialsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {socialsOpen ? "Hide socials" : "Add socials (optional)"}
+          </button>
+          {socialsOpen && (
+            <div className="mt-4 space-y-4 border-t border-[var(--color-border)] pt-5">
+              <Field
+                label="Twitter / X"
+                name="twitter"
+                type="text"
+                autoComplete="off"
+                placeholder="@handle or full URL"
+              />
+              <Field
+                label="GitHub"
+                name="github"
+                type="text"
+                autoComplete="off"
+                placeholder="username or full URL"
+              />
+              <Field
+                label="LinkedIn"
+                name="linkedin"
+                type="text"
+                autoComplete="off"
+                placeholder="profile URL"
+              />
+              <Field
+                label="Website"
+                name="website"
+                type="url"
+                autoComplete="url"
+                placeholder="https://..."
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/5 text-red-400 text-sm">
@@ -70,6 +116,7 @@ function Field({
   autoComplete,
   required,
   help,
+  placeholder,
 }: {
   label: string;
   name: string;
@@ -77,6 +124,7 @@ function Field({
   autoComplete?: string;
   required?: boolean;
   help?: string;
+  placeholder?: string;
 }) {
   return (
     <label className="block">
@@ -88,6 +136,7 @@ function Field({
         type={type}
         autoComplete={autoComplete}
         required={required}
+        placeholder={placeholder}
         className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none transition-colors"
       />
       {help && (
