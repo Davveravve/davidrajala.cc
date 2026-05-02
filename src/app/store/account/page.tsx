@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Download, ShoppingBag, LogOut, Settings } from "lucide-react";
+import { Download, ShoppingBag, LogOut, Settings, Gift } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { customerLogoutAction } from "@/app/store/_actions";
@@ -128,32 +128,51 @@ export default async function StoreAccountPage() {
                 >
                   <Link
                     href={`/store/orders/${o.id}`}
-                    className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[var(--color-border)]"
+                    className="block px-5 py-4 border-b border-[var(--color-border)]"
                   >
-                    <div>
-                      <div className="font-medium text-sm">
-                        Order #{o.id.slice(0, 8)}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm">
+                          Order #{o.id.slice(0, 8)}
+                        </div>
+                        <div className="text-xs text-[var(--color-fg-muted)] mt-0.5">
+                          {new Date(o.createdAt).toLocaleString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
                       </div>
-                      <div className="text-xs text-[var(--color-fg-muted)] mt-0.5">
-                        {new Date(o.createdAt).toLocaleString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {o.isGift ? (
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
+                            <Gift size={10} />
+                            Gifted
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded ${statusClass(o.status)}`}
+                          >
+                            {o.status}
+                          </span>
+                        )}
+                        <span className="font-display text-base tabular-nums">
+                          {o.isGift ? "Free" : formatPrice(o.totalAmount, o.currency)}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded ${statusClass(o.status)}`}
-                      >
-                        {o.status}
-                      </span>
-                      <span className="font-display text-base tabular-nums">
-                        {formatPrice(o.totalAmount, o.currency)}
-                      </span>
-                    </div>
+                    {o.isGift && o.giftNote && (
+                      <div className="mt-3 flex items-start gap-2 text-xs text-[var(--color-fg-muted)] leading-relaxed">
+                        <span className="flex h-5 w-5 items-center justify-center rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex-shrink-0 mt-0.5">
+                          <Gift size={11} />
+                        </span>
+                        <span className="line-clamp-2 italic">
+                          “{o.giftNote}”
+                        </span>
+                      </div>
+                    )}
                   </Link>
                   <ul className="px-5 py-3 divide-y divide-[var(--color-border)]">
                     {o.items.map((it) => (

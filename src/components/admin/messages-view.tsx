@@ -468,9 +468,17 @@ function ConversationHeader({
         </div>
         <div className="min-w-0">
           <h2 className="font-display text-lg font-medium truncate">{thread.name}</h2>
-          <div className="flex items-center gap-2 text-[11px] text-[var(--color-fg-muted)] mt-0.5">
-            <Clock size={11} />
-            <span>{formatFull(thread.lastCreatedAt)}</span>
+          <div className="flex items-center gap-2 text-[11px] text-[var(--color-fg-muted)] mt-0.5 flex-wrap">
+            <span className="inline-flex items-center gap-1.5">
+              <Clock size={11} />
+              {formatFull(thread.lastCreatedAt)}
+            </span>
+            {thread.contacts.length > 0 && (
+              <>
+                <span className="text-[var(--color-fg-dim)]">·</span>
+                <ContactPills contacts={thread.contacts} />
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -524,20 +532,51 @@ function ConversationBody({
       {messages.map((m) => (
         <MessageBubble key={m.id} msg={m} senderName={thread.name} />
       ))}
+    </div>
+  );
+}
 
-      {thread.contacts.length > 0 && (
-        <div className="border-t border-[var(--color-border)] pt-5 mt-2">
-          <div className="text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] mb-3 flex items-center gap-3">
-            <span className="h-px w-6 bg-[var(--color-fg-dim)]" />
-            Contact details
-          </div>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {thread.contacts.map((c) => (
-              <ContactCard key={c.id} contact={c} />
-            ))}
-          </ul>
-        </div>
-      )}
+function ContactPills({
+  contacts,
+}: {
+  contacts: { id: string; type: string; value: string; label: string }[];
+}) {
+  return (
+    <div className="inline-flex items-center gap-1 flex-wrap">
+      {contacts.map((c) => {
+        const meta = getContactMeta(c.type);
+        const Icon = meta.icon;
+        const href = meta.href ? meta.href(c.value) : undefined;
+        const display =
+          meta.prefix && !c.value.startsWith(meta.prefix)
+            ? `${meta.prefix}${c.value}`
+            : c.value;
+        const title = `${c.type === "other" && c.label ? c.label : meta.label}: ${display}`;
+        const className =
+          "inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors text-[10px] max-w-[180px]";
+        const inner = (
+          <>
+            <Icon size={10} />
+            <span className="truncate">{c.value}</span>
+          </>
+        );
+        return href ? (
+          <a
+            key={c.id}
+            href={href}
+            target={href.startsWith("http") ? "_blank" : undefined}
+            rel="noopener noreferrer"
+            title={title}
+            className={className}
+          >
+            {inner}
+          </a>
+        ) : (
+          <span key={c.id} title={title} className={className}>
+            {inner}
+          </span>
+        );
+      })}
     </div>
   );
 }
