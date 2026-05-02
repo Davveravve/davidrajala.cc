@@ -5,8 +5,14 @@ import { SiteFooter } from "@/components/site-footer";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { ChatProvider } from "@/components/chat/chat-context";
 import { ChatPanel } from "@/components/chat/chat-panel";
-import { getAboutMe } from "@/lib/queries";
+import { getAboutMe, getSiteSettings } from "@/lib/queries";
 import "./globals.css";
+
+function hexToRgb(hex: string) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+  if (!m) return null;
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
 
 const geist = Geist({
   subsets: ["latin"],
@@ -39,10 +45,16 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const about = await getAboutMe();
+  const [about, settings] = await Promise.all([getAboutMe(), getSiteSettings()]);
+
+  const rgb = hexToRgb(settings.accentColor) ?? { r: 0, g: 229, b: 255 };
+  const themeStyle = `:root{--color-accent:${settings.accentColor};--color-accent-glow:rgba(${rgb.r},${rgb.g},${rgb.b},0.35);--color-accent-2:${settings.accentColor2};}`;
 
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`} data-scroll-behavior="smooth">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: themeStyle }} />
+      </head>
       <body className="antialiased">
         <ChatProvider>
           <ScrollProgress />
@@ -53,6 +65,12 @@ export default async function RootLayout({
               email: about.email,
               phone: about.phone,
               location: about.location,
+              ownerName: about.name,
+            }}
+            settings={{
+              tagline: settings.footerTagline,
+              copyright: settings.footerCopyright,
+              statusText: settings.footerStatusText,
             }}
           />
           <ChatPanel

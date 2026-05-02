@@ -8,11 +8,28 @@ type FooterAbout = {
   email: string;
   phone: string;
   location: string;
+  ownerName: string;
 };
 
-export function SiteFooter({ about }: { about: FooterAbout }) {
+type FooterSettings = {
+  tagline: string;
+  copyright: string;
+  statusText: string;
+};
+
+export function SiteFooter({
+  about,
+  settings,
+}: {
+  about: FooterAbout;
+  settings: FooterSettings;
+}) {
   const pathname = usePathname();
   if (pathname?.startsWith("/admin")) return null;
+
+  const copyright =
+    settings.copyright ||
+    `© ${new Date().getFullYear()} ${about.ownerName}. All rights reserved.`;
 
   return (
     <footer className="relative border-t border-[var(--color-border)] mt-32">
@@ -21,11 +38,10 @@ export function SiteFooter({ about }: { about: FooterAbout }) {
           <div>
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] mb-3">
               <span className="h-px w-6 bg-[var(--color-accent)]" />
-              David Rajala
+              {about.ownerName}
             </div>
             <p className="text-[var(--color-fg-muted)] text-sm leading-relaxed max-w-sm">
-              Full Stack Developer based in {about.location || "Gothenburg"}.
-              Building digital products that feel as good as they look.
+              {settings.tagline}
             </p>
           </div>
 
@@ -92,11 +108,13 @@ export function SiteFooter({ about }: { about: FooterAbout }) {
         </div>
 
         <div className="mt-12 pt-8 border-t border-[var(--color-border)] flex flex-col md:flex-row gap-4 justify-between items-start md:items-center text-[11px] uppercase tracking-[0.08em] font-medium text-[var(--color-fg-dim)]">
-          <span>© {new Date().getFullYear()} David Rajala. All rights reserved.</span>
-          <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)] pulse-dot" />
-            SYSTEM ONLINE
-          </span>
+          <span>{copyright}</span>
+          {settings.statusText && (
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)] pulse-dot" />
+              {settings.statusText}
+            </span>
+          )}
         </div>
       </div>
     </footer>

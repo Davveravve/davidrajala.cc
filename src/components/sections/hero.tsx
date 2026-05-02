@@ -4,11 +4,27 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChatButton } from "@/components/chat/chat-button";
-import type { AboutMe } from "@prisma/client";
+import type { AboutMe, HomeSection, SiteSettings } from "@prisma/client";
 
-export function Hero({ about }: { about: AboutMe }) {
+export function Hero({
+  about,
+  config,
+  settings,
+}: {
+  about: AboutMe;
+  config?: HomeSection | null;
+  settings?: SiteSettings | null;
+}) {
   const hasBg = !!about.heroBgUrl;
   const isVideo = about.heroBgType === "video";
+
+  const sublineTemplate =
+    settings?.heroSubline ??
+    "Building digital products with a focus on usability and modern tech. Based in {location}.";
+  const subline = sublineTemplate.replace("{location}", about.location ?? "");
+  const ctaLabel = config?.ctaLabel ?? "View work";
+  const ctaHref = config?.ctaHref ?? "/projects";
+  const ctaSecondary = config?.titleMuted ?? "Contact me";
 
   return (
     <section className="relative min-h-[100vh] flex items-center overflow-hidden pt-32 pb-24">
@@ -68,11 +84,7 @@ export function Hero({ about }: { about: AboutMe }) {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="mt-8 max-w-2xl text-lg md:text-xl text-[var(--color-fg-muted)] leading-relaxed text-pretty"
           >
-            Building digital products with a focus on{" "}
-            <span className="text-[var(--color-fg)]">usability</span>{" "}
-            and{" "}
-            <span className="text-[var(--color-fg)]">modern tech</span>.
-            Based in {about.location}.
+            {subline}
           </motion.p>
 
           <motion.div
@@ -81,10 +93,10 @@ export function Hero({ about }: { about: AboutMe }) {
             transition={{ duration: 0.8, delay: 0.8 }}
             className="mt-12 flex flex-wrap gap-3"
           >
-            <Button href="/projects" arrow>
-              View work
+            <Button href={ctaHref || "/projects"} arrow>
+              {ctaLabel}
             </Button>
-            <ChatButton variant="outline">Contact me</ChatButton>
+            <ChatButton variant="outline">{ctaSecondary}</ChatButton>
           </motion.div>
 
           <motion.div

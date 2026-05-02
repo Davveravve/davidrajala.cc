@@ -2,10 +2,22 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { Reveal } from "@/components/ui/reveal";
 import { Button } from "@/components/ui/button";
 import { parseList } from "@/lib/queries";
-import type { AboutMe } from "@prisma/client";
+import type { AboutMe, HomeSection } from "@prisma/client";
 
-export function AboutSnippet({ about }: { about: AboutMe }) {
+export function AboutSnippet({
+  about,
+  config,
+}: {
+  about: AboutMe;
+  config?: HomeSection | null;
+}) {
   const skills = parseList(about.skills);
+
+  const eyebrow = config?.eyebrow ?? "About";
+  const title = config?.title ?? "Experienced developer.";
+  const titleMuted = config?.titleMuted ?? "Detail-obsessed designer.";
+  const ctaLabel = config?.ctaLabel ?? "More about me";
+  const ctaHref = config?.ctaHref ?? "/about";
 
   return (
     <section className="relative py-24 md:py-32 overflow-hidden">
@@ -13,13 +25,17 @@ export function AboutSnippet({ about }: { about: AboutMe }) {
       <div className="container-page relative">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-5">
-            <SectionLabel className="mb-6">About</SectionLabel>
+            <SectionLabel className="mb-6">{eyebrow}</SectionLabel>
             <Reveal>
               <h2 className="font-display text-4xl md:text-6xl font-medium tracking-tight text-balance">
-                Experienced developer. <br />
-                <span className="text-[var(--color-fg-muted)]">
-                  Detail-obsessed designer.
-                </span>
+                {title}
+                {titleMuted && (
+                  <>
+                    {" "}
+                    <br />
+                    <span className="text-[var(--color-fg-muted)]">{titleMuted}</span>
+                  </>
+                )}
               </h2>
             </Reveal>
           </div>
@@ -49,13 +65,15 @@ export function AboutSnippet({ about }: { about: AboutMe }) {
               </div>
             </Reveal>
 
-            <Reveal delay={0.5}>
-              <div className="mt-10">
-                <Button href="/about" variant="ghost" arrow>
-                  More about me
-                </Button>
-              </div>
-            </Reveal>
+            {ctaLabel && (
+              <Reveal delay={0.5}>
+                <div className="mt-10">
+                  <Button href={ctaHref || "/about"} variant="ghost" arrow>
+                    {ctaLabel}
+                  </Button>
+                </div>
+              </Reveal>
+            )}
           </div>
         </div>
       </div>

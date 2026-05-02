@@ -104,3 +104,32 @@ model NotificationSettings {
   telegramChatId  String   @default("")
   updatedAt       DateTime @updatedAt @default(now())
 }
+
+/// One row per renderable home-page section. Copy fields are nullable —
+/// null means "use the component's hardcoded default", so the site renders
+/// fine even when the table is empty.
+model HomeSection {
+  id          String   @id @default(cuid())
+  type        String   @unique
+  order       Int      @default(0)
+  visible     Boolean  @default(true)
+  eyebrow     String?
+  title       String?
+  titleMuted  String?
+  body        String?
+  ctaLabel    String?
+  ctaHref     String?
+  updatedAt   DateTime @updatedAt @default(now())
+}
+
+/// Site-wide settings (theme, footer copy, hero subline). Singleton.
+model SiteSettings {
+  id               String   @id @default("singleton")
+  accentColor      String   @default("#00e5ff")
+  accentColor2     String   @default("#7df9ff")
+  footerTagline    String   @default("Building digital products that feel as good as they look.")
+  footerCopyright  String   @default("")
+  footerStatusText String   @default("SYSTEM ONLINE")
+  heroSubline      String   @default("Building digital products with a focus on usability and modern tech. Based in {location}.")
+  updatedAt        DateTime @updatedAt @default(now())
+}

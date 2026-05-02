@@ -16,10 +16,12 @@ import {
   Menu,
   X,
   Settings as SettingsIcon,
+  Layout,
 } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/site-editor", label: "Site", icon: Layout },
   { href: "/admin/projects", label: "Projects", icon: FolderKanban },
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/about", label: "About", icon: User },

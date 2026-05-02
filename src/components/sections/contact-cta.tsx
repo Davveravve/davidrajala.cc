@@ -3,9 +3,16 @@
 import { ArrowUpRight } from "lucide-react";
 import { Reveal } from "@/components/ui/reveal";
 import { useChat } from "@/components/chat/chat-context";
+import type { HomeSection } from "@prisma/client";
 
-export function ContactCta() {
+export function ContactCta({ config }: { config?: HomeSection | null }) {
   const { setOpen } = useChat();
+
+  const eyebrow = config?.eyebrow ?? "Get in touch";
+  const title = config?.title ?? "Got a project";
+  const titleMuted = config?.titleMuted ?? "in mind?";
+  const body =
+    config?.body ?? "Open the chat and tell me about your project. I'll get back to you as soon as I can.";
 
   return (
     <section className="relative py-20 md:py-32 overflow-hidden">
@@ -30,16 +37,22 @@ export function ContactCta() {
               <div className="max-w-3xl">
                 <div className="text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] mb-6 flex items-center gap-3">
                   <span className="h-px w-8 bg-[var(--color-accent)]" />
-                  Get in touch
+                  {eyebrow}
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-medium tracking-tight text-balance leading-[0.95]">
-                  Got a project
-                  <br />
-                  <span className="text-[var(--color-accent)]">in mind?</span>
+                  {title}
+                  {titleMuted && (
+                    <>
+                      <br />
+                      <span className="text-[var(--color-accent)]">{titleMuted}</span>
+                    </>
+                  )}
                 </h2>
-                <p className="mt-6 text-lg text-[var(--color-fg-muted)] max-w-lg">
-                  Open the chat and tell me about your project. I&apos;ll get back to you as soon as I can.
-                </p>
+                {body && (
+                  <p className="mt-6 text-lg text-[var(--color-fg-muted)] max-w-lg">
+                    {body}
+                  </p>
+                )}
               </div>
 
               <span className="flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border border-[var(--color-border-strong)] text-[var(--color-fg-muted)] group-hover:border-[var(--color-accent)] group-hover:text-[var(--color-accent)] group-hover:bg-[var(--color-accent)]/5 group-hover:rotate-45 transition-all duration-500 flex-shrink-0">

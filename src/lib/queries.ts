@@ -54,11 +54,48 @@ export async function getCategories() {
 }
 
 export async function getAboutMe() {
-  let about = await prisma.aboutMe.findUnique({ where: { id: "singleton" } });
-  if (!about) {
-    about = await prisma.aboutMe.create({ data: { id: "singleton" } });
+  return prisma.aboutMe.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: { id: "singleton" },
+  });
+}
+
+export const HOME_SECTION_TYPES = [
+  "hero",
+  "featured",
+  "latest",
+  "about",
+  "contact",
+] as const;
+
+export type HomeSectionType = (typeof HOME_SECTION_TYPES)[number];
+
+export async function getHomeSections() {
+  let rows = await prisma.homeSection.findMany({ orderBy: { order: "asc" } });
+  if (rows.length < HOME_SECTION_TYPES.length) {
+    // Lazy-seed any missing rows. Race-safe: each `type` is unique, so
+    // upsert no-ops if another request already created it.
+    await Promise.all(
+      HOME_SECTION_TYPES.map((type, idx) =>
+        prisma.homeSection.upsert({
+          where: { type },
+          update: {},
+          create: { type, order: idx },
+        }),
+      ),
+    );
+    rows = await prisma.homeSection.findMany({ orderBy: { order: "asc" } });
   }
-  return about;
+  return rows;
+}
+
+export async function getSiteSettings() {
+  return prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: { id: "singleton" },
+  });
 }
 
 export function parseList(s: string): string[] {
