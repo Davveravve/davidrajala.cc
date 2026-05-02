@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User as UserIcon, LogIn } from "lucide-react";
 import { useChat } from "@/components/chat/chat-context";
 
 const NAV = [
@@ -15,7 +15,11 @@ const NAV = [
   { href: "/about", label: "About" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({
+  customer,
+}: {
+  customer: { name: string; email: string } | null;
+}) {
   const pathname = usePathname();
   const { setOpen: setChatOpen, open: chatOpen } = useChat();
   const [scrolled, setScrolled] = useState(false);
@@ -110,6 +114,29 @@ export function SiteHeader() {
               );
             })}
 
+            {customer ? (
+              <Link
+                href="/store/account"
+                className="relative ml-1 inline-flex items-center gap-2 pl-3 pr-4 py-2 text-sm font-medium rounded-full transition-colors text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface)]"
+                title={customer.email}
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)]/15 text-[var(--color-accent)] text-[11px] font-semibold">
+                  {(customer.name || customer.email)[0].toUpperCase()}
+                </span>
+                <span className="hidden sm:inline">
+                  {customer.name || customer.email.split("@")[0]}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href="/store/login"
+                className="relative ml-1 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-colors text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface)]"
+              >
+                <LogIn size={13} />
+                Sign in
+              </Link>
+            )}
+
             <button
               type="button"
               onClick={() => setChatOpen(true)}
@@ -173,6 +200,33 @@ export function SiteHeader() {
                   </Link>
                 );
               })}
+              {customer ? (
+                <Link
+                  href="/store/account"
+                  className="mt-2 flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] transition-colors"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent)]/15 text-[var(--color-accent)] text-xs font-semibold">
+                    {(customer.name || customer.email)[0].toUpperCase()}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">
+                      {customer.name || customer.email.split("@")[0]}
+                    </div>
+                    <div className="text-[10px] text-[var(--color-fg-muted)] truncate">
+                      {customer.email}
+                    </div>
+                  </div>
+                  <UserIcon size={14} className="text-[var(--color-fg-muted)]" />
+                </Link>
+              ) : (
+                <Link
+                  href="/store/login"
+                  className="mt-2 flex items-center gap-3 px-4 py-3 rounded-xl border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] transition-colors"
+                >
+                  <LogIn size={14} className="text-[var(--color-fg-muted)]" />
+                  <span className="text-sm font-medium">Sign in</span>
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => {

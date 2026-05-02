@@ -7,6 +7,7 @@ import { TopLoadingBar } from "@/components/top-loading-bar";
 import { ChatProvider } from "@/components/chat/chat-context";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { getAboutMe, getSiteSettings } from "@/lib/queries";
+import { getCurrentCustomer } from "@/lib/customer-auth";
 import "./globals.css";
 
 function hexToRgb(hex: string) {
@@ -88,7 +89,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [about, settings] = await Promise.all([getAboutMe(), getSiteSettings()]);
+  const [about, settings, customer] = await Promise.all([
+    getAboutMe(),
+    getSiteSettings(),
+    getCurrentCustomer(),
+  ]);
+  const headerCustomer = customer
+    ? { name: customer.name, email: customer.email }
+    : null;
 
   const rgb = hexToRgb(settings.accentColor) ?? { r: 0, g: 229, b: 255 };
   const themeStyle = `:root{--color-accent:${settings.accentColor};--color-accent-rgb:${rgb.r}, ${rgb.g}, ${rgb.b};--color-accent-glow:rgba(${rgb.r},${rgb.g},${rgb.b},0.35);--color-accent-2:${settings.accentColor2};}`;
@@ -102,7 +110,7 @@ export default async function RootLayout({
         <ChatProvider>
           <ScrollProgress />
           <TopLoadingBar />
-          <SiteHeader />
+          <SiteHeader customer={headerCustomer} />
           <main className="relative" style={{ viewTransitionName: "page" }}>
             {children}
           </main>

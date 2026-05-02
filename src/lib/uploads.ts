@@ -13,6 +13,9 @@ const IMAGE_MIME = new Map<string, string>([
   ["image/webp", "webp"],
   ["image/gif", "gif"],
   ["image/avif", "avif"],
+  ["image/svg+xml", "svg"],
+  ["image/bmp", "bmp"],
+  ["image/tiff", "tiff"],
 ]);
 const VIDEO_MIME = new Map<string, string>([
   ["video/mp4", "mp4"],
@@ -49,7 +52,14 @@ export async function saveUploadedFile(
     const map = isVideo ? VIDEO_MIME : IMAGE_MIME;
     const fromMime = map.get(file.type);
     if (!fromMime) {
-      throw new Error(`Filtypen ${file.type || "okänd"} är inte tillåten`);
+      const hint = isVideo
+        ? "Try MP4, WebM, or MOV."
+        : file.type === "image/heic" || file.type === "image/heif"
+          ? "HEIC/HEIF isn't supported — convert to JPEG or PNG first."
+          : "Try PNG, JPEG, WebP, AVIF, GIF, or SVG.";
+      throw new Error(
+        `Image format ${file.type || "(unknown)"} not supported. ${hint}`,
+      );
     }
     ext = fromMime;
     max = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
