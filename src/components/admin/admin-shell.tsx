@@ -20,11 +20,11 @@ import {
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/projekt", label: "Projects", icon: FolderKanban },
-  { href: "/admin/kategorier", label: "Categories", icon: Tag },
-  { href: "/admin/om-mig", label: "About", icon: User },
-  { href: "/admin/meddelanden", label: "Messages", icon: Mail },
-  { href: "/admin/installningar", label: "Settings", icon: SettingsIcon },
+  { href: "/admin/projects", label: "Projects", icon: FolderKanban },
+  { href: "/admin/categories", label: "Categories", icon: Tag },
+  { href: "/admin/about", label: "About", icon: User },
+  { href: "/admin/messages", label: "Messages", icon: Mail },
+  { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export function AdminShell({

@@ -18,7 +18,7 @@ export function FeaturedHighlight({ project }: { project: FeaturedProject }) {
       <div className="container-page">
         <Reveal>
           <Link
-            href={`/projekt/${project.slug}`}
+            href={`/projects/${project.slug}`}
             className="group relative block overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] transition-all duration-500"
           >
             <div className="grid grid-cols-1 lg:grid-cols-2">

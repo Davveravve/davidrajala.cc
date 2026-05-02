@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Mail, MailOpen, Trash2, Reply } from "lucide-react";
 import { markMessageRead, deleteMessage } from "@/app/_actions/messages";
-import { TwoFactorPrompt } from "./two-factor-prompt";
+import { ConfirmDialog } from "./confirm-dialog";
 
 type Msg = {
   id: string;
@@ -45,16 +45,16 @@ export function MessagesList({ messages }: { messages: Msg[] }) {
 
   return (
     <>
-    <TwoFactorPrompt
+    <ConfirmDialog
       open={pendingDelete !== null}
-      title="Radera meddelande"
-      description="Bekräfta radering med din 2FA-kod."
-      confirmLabel="Radera"
+      title="Delete message"
+      description="This message will be permanently removed."
+      confirmLabel="Delete"
       destructive
       onCancel={() => setPendingDelete(null)}
-      onSubmit={async (code) => {
+      onConfirm={async () => {
         if (!pendingDelete) return;
-        await deleteMessage(pendingDelete, code);
+        await deleteMessage(pendingDelete);
         setPendingDelete(null);
       }}
     />

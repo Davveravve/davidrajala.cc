@@ -22,7 +22,7 @@ export default async function AdminProjects() {
           </p>
         </div>
         <Link
-          href="/admin/projekt/nytt"
+          href="/admin/projects/new"
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-medium text-sm hover:shadow-[0_0_30px_var(--color-accent-glow)] transition-shadow self-start"
         >
           <Plus size={16} />

@@ -7,7 +7,7 @@ import {
   updateCategory,
   deleteCategory,
 } from "@/app/_actions/categories";
-import { TwoFactorPrompt } from "./two-factor-prompt";
+import { ConfirmDialog } from "./confirm-dialog";
 
 type Cat = { id: string; name: string; slug: string; count: number };
 
@@ -115,7 +115,7 @@ export function CategoriesEditor({ categories }: { categories: Cat[] }) {
         </div>
       )}
 
-      <TwoFactorPrompt
+      <ConfirmDialog
         open={pendingDelete !== null}
         title="Delete category"
         description={
@@ -128,9 +128,9 @@ export function CategoriesEditor({ categories }: { categories: Cat[] }) {
         confirmLabel="Delete"
         destructive
         onCancel={() => setPendingDelete(null)}
-        onSubmit={async (code) => {
+        onConfirm={async () => {
           if (!pendingDelete) return;
-          await deleteCategory(pendingDelete.id, code);
+          await deleteCategory(pendingDelete.id);
           setPendingDelete(null);
         }}
       />

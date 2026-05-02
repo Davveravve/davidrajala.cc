@@ -12,7 +12,7 @@ export function FeaturedProjects({ projects }: { projects: ProjectWithCat[] }) {
   if (projects.length === 0) return null;
 
   return (
-    <section id="projekt" className="relative py-32 overflow-hidden">
+    <section id="projects" className="relative py-32 overflow-hidden">
       <div className="container-page">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
           <div>
@@ -28,7 +28,7 @@ export function FeaturedProjects({ projects }: { projects: ProjectWithCat[] }) {
             </Reveal>
           </div>
           <Reveal delay={0.2}>
-            <Button href="/projekt" variant="outline" arrow>
+            <Button href="/projects" variant="outline" arrow>
               Alla projekt
             </Button>
           </Reveal>
@@ -54,7 +54,7 @@ export function ProjectCard({
   return (
     <Reveal>
       <Link
-        href={`/projekt/${project.slug}`}
+        href={`/projects/${project.slug}`}
         className={`group relative block overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-500 hover:border-[var(--color-accent)] hover:shadow-[0_0_40px_var(--color-accent-glow)] ${
           large ? "md:col-span-2" : ""
         }`}

@@ -23,7 +23,7 @@ export default async function EditProjectPage({
   return (
     <div className="container-page max-w-4xl py-8 md:py-12">
       <Link
-        href="/admin/projekt"
+        href="/admin/projects"
         className="inline-flex items-center gap-2 text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] transition-colors mb-8"
       >
         <ArrowLeft size={14} />

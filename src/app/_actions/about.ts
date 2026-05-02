@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { ensureAdminWith2FA } from "@/lib/admin-guard";
+import { ensureAdmin } from "@/lib/admin-guard";
 import { saveUploadedFile, deleteUpload, isLocalUpload } from "@/lib/uploads";
 
 const schema = z.object({
@@ -26,8 +26,7 @@ function fdToBool(v: FormDataEntryValue | null) {
 }
 
 export async function updateAbout(formData: FormData) {
-  const code = String(formData.get("totpCode") ?? "");
-  await ensureAdminWith2FA(code);
+  await ensureAdmin();
 
   const data = schema.parse({
     name: formData.get("name"),
@@ -84,6 +83,6 @@ export async function updateAbout(formData: FormData) {
   });
 
   revalidatePath("/");
-  revalidatePath("/om-mig");
-  revalidatePath("/admin/om-mig");
+  revalidatePath("/about");
+  revalidatePath("/admin/about");
 }

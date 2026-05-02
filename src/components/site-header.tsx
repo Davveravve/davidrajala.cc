@@ -9,8 +9,8 @@ import { useChat } from "@/components/chat/chat-context";
 
 const NAV = [
   { href: "/", label: "Home" },
-  { href: "/projekt", label: "Work" },
-  { href: "/om-mig", label: "About" },
+  { href: "/projects", label: "Projects" },
+  { href: "/about", label: "About" },
 ];
 
 export function SiteHeader() {

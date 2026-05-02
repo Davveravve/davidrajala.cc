@@ -30,7 +30,7 @@ export async function updateNotifications(formData: FormData) {
     update: data,
   });
 
-  revalidatePath("/admin/installningar");
+  revalidatePath("/admin/settings");
 }
 
 export async function sendTestTelegramMessage(): Promise<

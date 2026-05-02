@@ -61,7 +61,7 @@ export default async function AdminMessagesPage({
           return (
             <Link
               key={t.key}
-              href={t.key === "inbox" ? "/admin/meddelanden" : `/admin/meddelanden?view=${t.key}`}
+              href={t.key === "inbox" ? "/admin/messages" : `/admin/messages?view=${t.key}`}
               className={`relative inline-flex items-center gap-2 px-4 py-3 text-sm transition-colors ${
                 active
                   ? "text-[var(--color-fg)]"

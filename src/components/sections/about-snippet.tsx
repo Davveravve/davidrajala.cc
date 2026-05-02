@@ -51,7 +51,7 @@ export function AboutSnippet({ about }: { about: AboutMe }) {
 
             <Reveal delay={0.5}>
               <div className="mt-10">
-                <Button href="/om-mig" variant="ghost" arrow>
+                <Button href="/about" variant="ghost" arrow>
                   More about me
                 </Button>
               </div>

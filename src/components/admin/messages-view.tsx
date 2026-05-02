@@ -19,7 +19,7 @@ import {
   setMessageSaved,
   deleteMessage,
 } from "@/app/_actions/messages";
-import { TwoFactorPrompt } from "./two-factor-prompt";
+import { ConfirmDialog } from "./confirm-dialog";
 import { getContactMeta } from "@/lib/contact-types";
 
 type ContactDetail = {
@@ -134,7 +134,7 @@ export function MessagesView({
         </section>
       </div>
 
-      <TwoFactorPrompt
+      <ConfirmDialog
         open={pendingDelete !== null}
         title="Delete message"
         description={
@@ -145,9 +145,9 @@ export function MessagesView({
         confirmLabel="Delete"
         destructive
         onCancel={() => setPendingDelete(null)}
-        onSubmit={async (verification) => {
+        onConfirm={async () => {
           if (!pendingDelete) return;
-          await deleteMessage(pendingDelete.id, verification);
+          await deleteMessage(pendingDelete.id);
           setPendingDelete(null);
         }}
       />

@@ -48,7 +48,7 @@ export default async function ProjectDetailPage({
         <div className="absolute inset-0 bg-grid-fine opacity-30" aria-hidden />
         <div className="container-page relative">
           <Link
-            href="/projekt"
+            href="/projects"
             className="inline-flex items-center gap-2 text-sm uppercase tracking-[0.08em] font-medium text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] transition-colors mb-12 group"
           >
             <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
@@ -188,7 +188,7 @@ export default async function ProjectDetailPage({
       <section className="relative pb-32">
         <div className="container-page">
           <Link
-            href="/projekt"
+            href="/projects"
             className="group flex items-center justify-between gap-6 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 md:p-12 hover:border-[var(--color-accent)] transition-colors"
           >
             <div>

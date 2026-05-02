@@ -20,7 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Pencil, Star, Eye, EyeOff, Trash2, Check } from "lucide-react";
 import { reorderProjects, deleteProject, setFeaturedProject } from "@/app/_actions/projects";
-import { TwoFactorPrompt } from "./two-factor-prompt";
+import { ConfirmDialog } from "./confirm-dialog";
 
 type AdminProject = {
   id: string;
@@ -77,7 +77,7 @@ export function ProjectsAdminList({ projects }: { projects: AdminProject[] }) {
           Create your first project to get started.
         </p>
         <Link
-          href="/admin/projekt/nytt"
+          href="/admin/projects/new"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-medium text-sm"
         >
           Add project
@@ -103,20 +103,20 @@ export function ProjectsAdminList({ projects }: { projects: AdminProject[] }) {
         </SortableContext>
       </DndContext>
 
-      <TwoFactorPrompt
+      <ConfirmDialog
         open={pendingDelete !== null}
         title="Delete project"
         description={
           pendingDelete
-            ? `You're about to delete "${pendingDelete.title}". Confirm to continue.`
+            ? `You're about to delete "${pendingDelete.title}". This cannot be undone.`
             : undefined
         }
         confirmLabel="Delete"
         destructive
         onCancel={() => setPendingDelete(null)}
-        onSubmit={async (code) => {
+        onConfirm={async () => {
           if (!pendingDelete) return;
-          await deleteProject(pendingDelete.id, code);
+          await deleteProject(pendingDelete.id);
           setItems((prev) => prev.filter((i) => i.id !== pendingDelete.id));
           setPendingDelete(null);
         }}
@@ -222,7 +222,7 @@ function SortableRow({
           <Star size={14} fill={project.featured ? "currentColor" : "transparent"} />
         </button>
         <Link
-          href={`/projekt/${project.slug}`}
+          href={`/projects/${project.slug}`}
           target="_blank"
           className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors"
           title="View publicly"
@@ -230,7 +230,7 @@ function SortableRow({
           {project.published ? <Eye size={16} /> : <EyeOff size={16} />}
         </Link>
         <Link
-          href={`/admin/projekt/${project.id}`}
+          href={`/admin/projects/${project.id}`}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-2)] transition-colors"
           title="Edit"
         >

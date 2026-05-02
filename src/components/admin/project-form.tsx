@@ -10,7 +10,7 @@ import {
   deleteProjectImage,
 } from "@/app/_actions/projects";
 import type { Category } from "@prisma/client";
-import { TwoFactorPrompt } from "./two-factor-prompt";
+import { ConfirmDialog } from "./confirm-dialog";
 import { isVideoUrl } from "@/lib/media";
 
 type ImageRow = { id: string; url: string; alt: string };
@@ -96,16 +96,16 @@ export function ProjectForm(props: Props) {
 
   return (
     <>
-    <TwoFactorPrompt
+    <ConfirmDialog
       open={pendingDeleteImage !== null}
       title="Remove image"
-      description="Confirm to remove this image."
+      description="This image will be removed from the gallery."
       confirmLabel="Remove"
       destructive
       onCancel={() => setPendingDeleteImage(null)}
-      onSubmit={async (code) => {
+      onConfirm={async () => {
         if (!pendingDeleteImage) return;
-        await deleteProjectImage(pendingDeleteImage, code);
+        await deleteProjectImage(pendingDeleteImage);
         setExistingImages((prev) => prev.filter((i) => i.id !== pendingDeleteImage));
         setPendingDeleteImage(null);
       }}

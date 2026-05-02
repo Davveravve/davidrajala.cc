@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { ensureAdmin, ensureAdminWith2FA } from "@/lib/admin-guard";
+import { ensureAdmin } from "@/lib/admin-guard";
 import { z } from "zod";
 
 const schema = z.object({
@@ -22,8 +22,8 @@ export async function createCategory(formData: FormData) {
   await prisma.category.create({
     data: { ...data, order: (last._max.order ?? -1) + 1 },
   });
-  revalidatePath("/admin/kategorier");
-  revalidatePath("/projekt");
+  revalidatePath("/admin/categories");
+  revalidatePath("/projects");
 }
 
 export async function updateCategory(id: string, formData: FormData) {
@@ -35,13 +35,13 @@ export async function updateCategory(id: string, formData: FormData) {
       .trim(),
   });
   await prisma.category.update({ where: { id }, data });
-  revalidatePath("/admin/kategorier");
-  revalidatePath("/projekt");
+  revalidatePath("/admin/categories");
+  revalidatePath("/projects");
 }
 
-export async function deleteCategory(id: string, totpCode: string) {
-  await ensureAdminWith2FA(totpCode);
+export async function deleteCategory(id: string) {
+  await ensureAdmin();
   await prisma.category.delete({ where: { id } });
-  revalidatePath("/admin/kategorier");
-  revalidatePath("/projekt");
+  revalidatePath("/admin/categories");
+  revalidatePath("/projects");
 }

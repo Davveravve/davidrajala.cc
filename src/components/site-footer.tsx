@@ -40,12 +40,12 @@ export function SiteFooter({ about }: { about: FooterAbout }) {
                 </Link>
               </li>
               <li>
-                <Link href="/projekt" className="text-sm hover:text-[var(--color-accent)] transition-colors">
-                  Work
+                <Link href="/projects" className="text-sm hover:text-[var(--color-accent)] transition-colors">
+                  Projects
                 </Link>
               </li>
               <li>
-                <Link href="/om-mig" className="text-sm hover:text-[var(--color-accent)] transition-colors">
+                <Link href="/about" className="text-sm hover:text-[var(--color-accent)] transition-colors">
                   About
                 </Link>
               </li>

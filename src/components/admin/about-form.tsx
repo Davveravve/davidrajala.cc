@@ -4,7 +4,6 @@ import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { Check, AlertCircle, Upload, X, Video, Film } from "lucide-react";
 import { updateAbout } from "@/app/_actions/about";
-import { TwoFactorPrompt } from "./two-factor-prompt";
 
 type AboutInput = {
   name: string;
@@ -33,8 +32,7 @@ export function AboutForm({ about }: { about: AboutInput }) {
   const [heroBgType, setHeroBgType] = useState<string>(about.heroBgType);
   const [heroRemove, setHeroRemove] = useState(false);
   const [available, setAvailable] = useState(about.available);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -61,35 +59,18 @@ export function AboutForm({ about }: { about: AboutInput }) {
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setShowPrompt(true);
-  }
-
-  async function submitWithCode(code: string) {
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
-    fd.set("totpCode", code);
     fd.set("available", available ? "true" : "");
     if (heroRemove) fd.set("heroBgRemove", "true");
-    return new Promise<void>((resolve, reject) => {
-      startTransition(async () => {
-        try {
-          await updateAbout(fd);
-          setSavedAt(Date.now());
-          setShowPrompt(false);
-          setHeroRemove(false);
-          resolve();
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "Something went wrong";
-          if (msg.includes("kod") || msg.includes("Kod")) {
-            // 2FA-related — bubble up to prompt
-            reject(new Error(msg));
-          } else {
-            setError(msg);
-            setShowPrompt(false);
-            resolve();
-          }
-        }
-      });
+    startTransition(async () => {
+      try {
+        await updateAbout(fd);
+        setSavedAt(Date.now());
+        setHeroRemove(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
     });
   }
 
@@ -326,21 +307,13 @@ export function AboutForm({ about }: { about: AboutInput }) {
           )}
           <button
             type="submit"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-medium text-sm hover:shadow-[0_0_30px_var(--color-accent-glow)] transition-shadow"
+            disabled={isPending}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-medium text-sm hover:shadow-[0_0_30px_var(--color-accent-glow)] transition-shadow disabled:opacity-60"
           >
-            Save changes
+            {isPending ? "Saving..." : "Save changes"}
           </button>
         </div>
       </form>
-
-      <TwoFactorPrompt
-        open={showPrompt}
-        title="Save profile"
-        description="Profile changes are confirmed with verification."
-        confirmLabel="Confirm & save"
-        onCancel={() => setShowPrompt(false)}
-        onSubmit={submitWithCode}
-      />
     </>
   );
 }

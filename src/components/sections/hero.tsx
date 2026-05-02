@@ -81,7 +81,7 @@ export function Hero({ about }: { about: AboutMe }) {
             transition={{ duration: 0.8, delay: 0.8 }}
             className="mt-12 flex flex-wrap gap-3"
           >
-            <Button href="/projekt" arrow>
+            <Button href="/projects" arrow>
               View work
             </Button>
             <ChatButton variant="outline">Contact me</ChatButton>

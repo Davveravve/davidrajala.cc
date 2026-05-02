@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { ensureAdmin, ensureAdminWith2FA } from "@/lib/admin-guard";
+import { ensureAdmin } from "@/lib/admin-guard";
 import { saveUploadedFile, deleteUpload, isLocalUpload } from "@/lib/uploads";
 
 function slugify(s: string) {
@@ -109,9 +109,9 @@ export async function createProject(formData: FormData) {
   }
 
   revalidatePath("/");
-  revalidatePath("/projekt");
-  revalidatePath(`/projekt/${slug}`);
-  redirect(`/admin/projekt/${project.id}`);
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${slug}`);
+  redirect(`/admin/projects/${project.id}`);
 }
 
 export async function updateProject(projectId: string, formData: FormData) {
@@ -184,14 +184,14 @@ export async function updateProject(projectId: string, formData: FormData) {
   }
 
   revalidatePath("/");
-  revalidatePath("/projekt");
-  revalidatePath(`/projekt/${existing.slug}`);
-  if (slug !== existing.slug) revalidatePath(`/projekt/${slug}`);
-  revalidatePath(`/admin/projekt/${projectId}`);
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${existing.slug}`);
+  if (slug !== existing.slug) revalidatePath(`/projects/${slug}`);
+  revalidatePath(`/admin/projects/${projectId}`);
 }
 
-export async function deleteProject(projectId: string, totpCode: string) {
-  await ensureAdminWith2FA(totpCode);
+export async function deleteProject(projectId: string) {
+  await ensureAdmin();
   const existing = await prisma.project.findUnique({
     where: { id: projectId },
     include: { images: true },
@@ -208,13 +208,13 @@ export async function deleteProject(projectId: string, totpCode: string) {
   await prisma.project.delete({ where: { id: projectId } });
 
   revalidatePath("/");
-  revalidatePath("/projekt");
-  revalidatePath(`/projekt/${existing.slug}`);
-  revalidatePath("/admin/projekt");
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${existing.slug}`);
+  revalidatePath("/admin/projects");
 }
 
-export async function deleteProjectImage(imageId: string, totpCode: string) {
-  await ensureAdminWith2FA(totpCode);
+export async function deleteProjectImage(imageId: string) {
+  await ensureAdmin();
   const img = await prisma.projectImage.findUnique({
     where: { id: imageId },
     include: { project: true },
@@ -222,8 +222,8 @@ export async function deleteProjectImage(imageId: string, totpCode: string) {
   if (!img) return;
   if (isLocalUpload(img.url)) await deleteUpload(img.url);
   await prisma.projectImage.delete({ where: { id: imageId } });
-  revalidatePath(`/projekt/${img.project.slug}`);
-  revalidatePath(`/admin/projekt/${img.projectId}`);
+  revalidatePath(`/projects/${img.project.slug}`);
+  revalidatePath(`/admin/projects/${img.projectId}`);
 }
 
 export async function reorderProjects(orderedIds: string[]) {
@@ -235,8 +235,8 @@ export async function reorderProjects(orderedIds: string[]) {
     ),
   );
   revalidatePath("/");
-  revalidatePath("/projekt");
-  revalidatePath("/admin/projekt");
+  revalidatePath("/projects");
+  revalidatePath("/admin/projects");
 }
 
 /**
@@ -259,6 +259,6 @@ export async function setFeaturedProject(projectId: string | null) {
     }
   });
   revalidatePath("/");
-  revalidatePath("/projekt");
-  revalidatePath("/admin/projekt");
+  revalidatePath("/projects");
+  revalidatePath("/admin/projects");
 }

@@ -32,26 +32,26 @@ export default async function AdminDashboard() {
           label="Projects"
           value={projectCount}
           icon={<FolderKanban size={16} />}
-          href="/admin/projekt"
+          href="/admin/projects"
         />
         <StatCard
           label="Categories"
           value={categoryCount}
           icon={<Tag size={16} />}
-          href="/admin/kategorier"
+          href="/admin/categories"
         />
         <StatCard
           label="Messages"
           value={msgCount}
           subtext={`${unreadCount} unread`}
           icon={<Mail size={16} />}
-          href="/admin/meddelanden"
+          href="/admin/messages"
         />
         <StatCard
           label="About"
           value="—"
           icon={<User size={16} />}
-          href="/admin/om-mig"
+          href="/admin/about"
         />
       </div>
 
@@ -59,7 +59,7 @@ export default async function AdminDashboard() {
         <div className="px-6 py-5 border-b border-[var(--color-border)] flex items-center justify-between">
           <h2 className="font-display text-lg font-medium">Recently updated projects</h2>
           <Link
-            href="/admin/projekt"
+            href="/admin/projects"
             className="text-xs uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] transition-colors"
           >
             See all →
@@ -69,7 +69,7 @@ export default async function AdminDashboard() {
           {recent.map((p) => (
             <li key={p.id}>
               <Link
-                href={`/admin/projekt/${p.id}`}
+                href={`/admin/projects/${p.id}`}
                 className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-[var(--color-surface-2)] transition-colors"
               >
                 <div>
