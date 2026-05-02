@@ -39,11 +39,51 @@ model Project {
   order       Int            @default(0)
   featured    Boolean        @default(false)
   published   Boolean        @default(true)
+
+  // status: "live" | "wip" | "archived" | "oss"
+  status      String         @default("live")
+
+  // case study (only used when hasCaseStudy = true)
+  hasCaseStudy        Boolean @default(false)
+  caseChallenge       String  @default("")
+  caseProcess         String  @default("")
+  caseOutcome         String  @default("")
+  caseLessons         String  @default("")
+
+  // before/after pair for 3D-style projects (optional)
+  beforeUrl   String?
+  afterUrl    String?
+
+  viewCount   Int            @default(0)
+
   categoryId  String?
   category    Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   images      ProjectImage[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+}
+
+/// Standalone gallery (separate from per-project images).
+model GalleryImage {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String   @default("")
+  caption   String   @default("")
+  order     Int      @default(0)
+  width     Int?
+  height    Int?
+  takenAt   DateTime?
+  createdAt DateTime @default(now())
+}
+
+/// Append-only audit trail of admin actions for the activity feed.
+model ActivityLog {
+  id         String   @id @default(cuid())
+  action     String   // e.g. "project.create", "message.delete", "site.update"
+  entityType String?  // "project" | "message" | "section" | ...
+  entityId   String?
+  label      String   @default("") // human-readable label for the entity
+  createdAt  DateTime @default(now())
 }
 
 model ProjectImage {
