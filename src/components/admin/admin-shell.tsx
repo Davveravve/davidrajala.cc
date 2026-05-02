@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { signOut } from "next-auth/react";
@@ -41,8 +41,15 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+
+  async function handleSignOut() {
+    await signOut({ redirect: false });
+    router.replace("/admin/login");
+    router.refresh();
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -127,7 +134,7 @@ export function AdminShell({
             </Link>
             <button
               type="button"
-              onClick={() => signOut({ callbackUrl: "/admin/login" })}
+              onClick={handleSignOut}
               className="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs text-red-400 hover:bg-red-500/10 transition-colors"
               title="Sign out"
             >
@@ -188,7 +195,7 @@ export function AdminShell({
                 </Link>
                 <button
                   type="button"
-                  onClick={() => signOut({ callbackUrl: "/admin/login" })}
+                  onClick={handleSignOut}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                 >
                   <LogOut size={14} />
