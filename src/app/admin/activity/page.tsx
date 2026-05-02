@@ -27,7 +27,7 @@ type ActivityRow = {
 export default async function AdminActivityPage() {
   const rows = await prisma.activityLog.findMany({
     orderBy: { createdAt: "desc" },
-    take: 200,
+    take: 100,
   });
 
   return (
@@ -40,7 +40,7 @@ export default async function AdminActivityPage() {
           Activity
         </h1>
         <p className="mt-2 text-sm text-[var(--color-fg-muted)]">
-          Recent admin actions, newest first. Showing the last {rows.length}.
+          Recent admin actions, newest first. Up to 100 most recent shown.
         </p>
       </div>
 

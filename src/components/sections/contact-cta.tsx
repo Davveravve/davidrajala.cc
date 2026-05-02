@@ -28,7 +28,7 @@ export function ContactCta({ config }: { config?: HomeSection | null }) {
               className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
               style={{
                 background:
-                  "radial-gradient(circle at 50% 50%, rgba(0,229,255,0.1), transparent 60%)",
+                  "radial-gradient(circle at 50% 50%, rgba(var(--color-accent-rgb), 0.1), transparent 60%)",
               }}
               aria-hidden
             />

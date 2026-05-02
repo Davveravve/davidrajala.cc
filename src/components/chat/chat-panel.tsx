@@ -570,7 +570,7 @@ function UserBubble({
       className="flex justify-end"
     >
       <div className="max-w-[85%]">
-        <div className="rounded-2xl rounded-tr-sm bg-[var(--color-accent)] text-[var(--color-bg)] px-4 py-3 shadow-[0_0_24px_rgba(0,229,255,0.18)]">
+        <div className="rounded-2xl rounded-tr-sm bg-[var(--color-accent)] text-[var(--color-bg)] px-4 py-3 shadow-[0_0_24px_rgba(var(--color-accent-rgb),0.18)]">
           <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{message}</p>
         </div>
         <div className="mt-1.5 flex items-center justify-end gap-2 text-[10px] text-[var(--color-fg-dim)]">

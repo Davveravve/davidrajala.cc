@@ -49,7 +49,7 @@ export default async function RootLayout({
   const [about, settings] = await Promise.all([getAboutMe(), getSiteSettings()]);
 
   const rgb = hexToRgb(settings.accentColor) ?? { r: 0, g: 229, b: 255 };
-  const themeStyle = `:root{--color-accent:${settings.accentColor};--color-accent-glow:rgba(${rgb.r},${rgb.g},${rgb.b},0.35);--color-accent-2:${settings.accentColor2};}`;
+  const themeStyle = `:root{--color-accent:${settings.accentColor};--color-accent-rgb:${rgb.r}, ${rgb.g}, ${rgb.b};--color-accent-glow:rgba(${rgb.r},${rgb.g},${rgb.b},0.35);--color-accent-2:${settings.accentColor2};}`;
 
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`} data-scroll-behavior="smooth">

@@ -12,13 +12,25 @@ import {
 } from "@/lib/queries";
 
 export default async function HomePage() {
-  const [featured, about, sections, settings] = await Promise.all([
-    getFeaturedProject(),
+  const [about, sections, settings] = await Promise.all([
     getAboutMe(),
     getHomeSections(),
     getSiteSettings(),
   ]);
-  const recent = await getRecentProjects(featured?.id ?? null);
+
+  // Featured sections each render a specific project (section.project).
+  // Older configs without a projectId fall back to the legacy globally-starred
+  // project so existing setups don't go blank after the schema change.
+  const featuredFallback =
+    sections.some((s) => s.type === "featured" && s.visible && !s.projectId)
+      ? await getFeaturedProject()
+      : null;
+
+  const featuredIds = sections
+    .filter((s) => s.type === "featured" && s.projectId)
+    .map((s) => s.projectId!)
+    .concat(featuredFallback ? [featuredFallback.id] : []);
+  const recent = await getRecentProjects(featuredIds);
 
   const visible = sections
     .filter((s) => s.visible)
@@ -30,10 +42,12 @@ export default async function HomePage() {
         switch (s.type) {
           case "hero":
             return <Hero key={s.id} about={about} config={s} settings={settings} />;
-          case "featured":
-            return featured ? (
-              <FeaturedHighlight key={s.id} project={featured} config={s} />
+          case "featured": {
+            const project = s.project ?? featuredFallback;
+            return project ? (
+              <FeaturedHighlight key={s.id} project={project} config={s} />
             ) : null;
+          }
           case "latest":
             return <LatestProjects key={s.id} projects={recent} config={s} />;
           case "about":

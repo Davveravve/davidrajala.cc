@@ -83,7 +83,7 @@ export function SiteHeader() {
                       className="absolute inset-0 rounded-full bg-[var(--color-accent)]/8 border border-[var(--color-accent)]/35"
                       style={{
                         boxShadow:
-                          "inset 0 0 14px rgba(0,229,255,0.08), 0 0 0 1px rgba(0,229,255,0.05)",
+                          "inset 0 0 14px rgba(var(--color-accent-rgb), 0.08), 0 0 0 1px rgba(var(--color-accent-rgb), 0.05)",
                       }}
                       transition={{ type: "spring", stiffness: 380, damping: 32 }}
                     />

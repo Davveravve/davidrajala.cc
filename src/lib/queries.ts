@@ -10,11 +10,16 @@ export async function getFeaturedProject() {
   });
 }
 
-export async function getRecentProjects(excludeId?: string | null) {
+export async function getRecentProjects(exclude?: string | string[] | null) {
+  const excludeIds = Array.isArray(exclude)
+    ? exclude.filter(Boolean)
+    : exclude
+      ? [exclude]
+      : [];
   return prisma.project.findMany({
     where: {
       published: true,
-      ...(excludeId ? { id: { not: excludeId } } : {}),
+      ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
     },
     include: { category: true },
     orderBy: [{ order: "asc" }, { createdAt: "desc" }],
@@ -72,20 +77,21 @@ export const HOME_SECTION_TYPES = [
 export type HomeSectionType = (typeof HOME_SECTION_TYPES)[number];
 
 export async function getHomeSections() {
-  let rows = await prisma.homeSection.findMany({ orderBy: { order: "asc" } });
-  if (rows.length < HOME_SECTION_TYPES.length) {
-    // Lazy-seed any missing rows. Race-safe: each `type` is unique, so
-    // upsert no-ops if another request already created it.
-    await Promise.all(
+  let rows = await prisma.homeSection.findMany({
+    orderBy: { order: "asc" },
+    include: { project: { include: { category: true, images: { orderBy: { order: "asc" }, take: 1 } } } },
+  });
+  if (rows.length === 0) {
+    // First-run lazy seed: one row per default type.
+    await prisma.$transaction(
       HOME_SECTION_TYPES.map((type, idx) =>
-        prisma.homeSection.upsert({
-          where: { type },
-          update: {},
-          create: { type, order: idx },
-        }),
+        prisma.homeSection.create({ data: { type, order: idx } }),
       ),
     );
-    rows = await prisma.homeSection.findMany({ orderBy: { order: "asc" } });
+    rows = await prisma.homeSection.findMany({
+      orderBy: { order: "asc" },
+      include: { project: { include: { category: true, images: { orderBy: { order: "asc" }, take: 1 } } } },
+    });
   }
   return rows;
 }

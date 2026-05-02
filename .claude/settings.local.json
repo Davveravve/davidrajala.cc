@@ -55,7 +55,14 @@
       "Bash(BOOT_PW='LnHbrJXNvL4wrJnbhbCPP' python .run-migrate.py)",
       "Bash(git commit -m 'deploy: keep Prisma provider as postgresql after every pull *)",
       "Bash(git commit -m 'show all skills on home about-snippet \\(remove 8-item cap\\) *)",
-      "Bash(git commit -m 'wire footer '\\\\''Get in touch'\\\\'' to AboutMe data from admin *)"
+      "Bash(git commit -m 'wire footer '\\\\''Get in touch'\\\\'' to AboutMe data from admin *)",
+      "Bash(git tag *)",
+      "Bash(git mv *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(git commit *)",
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(Stop-Process *)"
     ]
   }
 }

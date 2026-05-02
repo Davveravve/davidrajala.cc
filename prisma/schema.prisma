@@ -59,6 +59,7 @@ model Project {
   categoryId  String?
   category    Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   images      ProjectImage[]
+  homeSections HomeSection[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 }
@@ -148,9 +149,12 @@ model NotificationSettings {
 /// One row per renderable home-page section. Copy fields are nullable —
 /// null means "use the component's hardcoded default", so the site renders
 /// fine even when the table is empty.
+/// Multiple rows per `type` are allowed — a "featured" section can be
+/// duplicated to spotlight several projects. `projectId` is set on
+/// featured sections to bind a specific project; otherwise null.
 model HomeSection {
   id          String   @id @default(cuid())
-  type        String   @unique
+  type        String
   order       Int      @default(0)
   visible     Boolean  @default(true)
   eyebrow     String?
@@ -159,6 +163,8 @@ model HomeSection {
   body        String?
   ctaLabel    String?
   ctaHref     String?
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   updatedAt   DateTime @updatedAt @default(now())
 }
 
