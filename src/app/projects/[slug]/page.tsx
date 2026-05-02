@@ -10,6 +10,7 @@ import { BeforeAfterSlider } from "@/components/project/before-after-slider";
 import { ProjectCard } from "@/components/sections/featured-projects";
 import { ProjectJsonLd } from "@/components/json-ld";
 import { getAboutMe } from "@/lib/queries";
+import { CommentSection } from "@/components/comments/comment-section";
 
 export async function generateStaticParams() {
   const slugs = await getAllProjectSlugs();
@@ -311,6 +312,11 @@ export default async function ProjectDetailPage({
           </div>
         </section>
       )}
+
+      {/* comments */}
+      <section className="relative pt-8">
+        <CommentSection parentType="project" parentId={project.slug} />
+      </section>
 
       {/* related projects */}
       {related.length > 0 && (

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { MessageSquare } from "lucide-react";
 import { MediaLightbox, type LightboxItem } from "@/components/media-lightbox";
 import { Reveal } from "@/components/ui/reveal";
 
@@ -30,7 +32,7 @@ export function GalleryGrid({ images }: { images: GalleryItem[] }) {
             <Reveal
               key={img.id}
               delay={Math.min(i * 0.04, 0.4)}
-              className={wide ? "md:col-span-2" : "md:col-span-1"}
+              className={`relative ${wide ? "md:col-span-2" : "md:col-span-1"}`}
             >
               <button
                 type="button"
@@ -72,6 +74,17 @@ export function GalleryGrid({ images }: { images: GalleryItem[] }) {
                   )}
                 </div>
               </button>
+              {/* Pinned comments link — sits above the lightbox button so
+                  clicks don't bubble. Visible on hover. */}
+              <Link
+                href={`/gallery/${img.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[var(--color-bg)]/80 backdrop-blur-sm border border-[var(--color-border)] text-[10px] font-medium text-[var(--color-fg-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="View detail page with comments"
+              >
+                <MessageSquare size={11} />
+                Open
+              </Link>
             </Reveal>
           );
         })}

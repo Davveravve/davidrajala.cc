@@ -9,6 +9,8 @@ import { BuyButton } from "@/components/store/buy-button";
 import { OwnedDownloadButton } from "@/components/store/owned-download-button";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { MAX_DOWNLOADS } from "@/lib/download-tokens";
+import { ReviewsSection } from "@/components/store/reviews-section";
+import { StarRating } from "@/components/ui/star-rating";
 
 export async function generateMetadata({
   params,
@@ -63,6 +65,15 @@ export default async function StoreProductPage({
     : 0;
   const owns = !!ownedItem;
 
+  // Aggregate review summary for the hero card.
+  const ratingAgg = await prisma.review.aggregate({
+    where: { productId: product.id },
+    _avg: { rating: true },
+    _count: { _all: true },
+  });
+  const ratingAvg = ratingAgg._avg.rating ?? 0;
+  const ratingCount = ratingAgg._count._all;
+
   return (
     <article className="relative">
       <section className="relative pt-32 pb-12 overflow-hidden">
@@ -112,6 +123,19 @@ export default async function StoreProductPage({
                     {product.summary}
                   </p>
                 </Reveal>
+              )}
+
+              {ratingCount > 0 && (
+                <a
+                  href="#reviews"
+                  className="mt-4 inline-flex items-center gap-2 text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-accent)] transition-colors"
+                >
+                  <StarRating value={ratingAvg} size={13} />
+                  <span className="tabular-nums">{ratingAvg.toFixed(1)}</span>
+                  <span className="text-[var(--color-fg-dim)]">
+                    · {ratingCount} {ratingCount === 1 ? "review" : "reviews"}
+                  </span>
+                </a>
               )}
 
               <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 space-y-5">
@@ -184,6 +208,10 @@ export default async function StoreProductPage({
           </div>
         </section>
       )}
+
+      <section id="reviews" className="relative">
+        <ReviewsSection productId={product.id} />
+      </section>
 
       <section className="relative pb-32">
         <div className="container-page">

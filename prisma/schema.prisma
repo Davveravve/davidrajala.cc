@@ -101,6 +101,45 @@ model Customer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   orders       Order[]
+  reviews      Review[]
+  comments     Comment[]
+}
+
+/// Star rating + written review for a StoreProduct, only writable by a
+/// customer who actually paid for that product. One review per customer
+/// per product (enforced via unique constraint).
+model Review {
+  id         String       @id @default(cuid())
+  customerId String
+  customer   Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    StoreProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// 1..5
+  rating     Int
+  title      String       @default("")
+  body       String       @default("")
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([customerId, productId])
+  @@index([productId, createdAt])
+}
+
+/// Generic comment for projects + gallery items. parentType discriminates
+/// ("project" | "gallery"). Customers must be signed in to post; the
+/// author can edit / delete their own, admin can delete any.
+model Comment {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  /// "project" | "gallery"
+  parentType String
+  parentId   String
+  body       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([parentType, parentId, createdAt])
 }
 
 /// A digital product for sale on /store. Price stored in minor units
@@ -129,6 +168,7 @@ model StoreProduct {
   updatedAt    DateTime @updatedAt
   items        OrderItem[]
   homeSections HomeSection[]
+  reviews      Review[]
 }
 
 model Order {
