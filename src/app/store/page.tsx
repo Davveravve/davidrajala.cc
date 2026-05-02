@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { SectionLabel } from "@/components/ui/section-label";
 import { Reveal } from "@/components/ui/reveal";
 import { formatPrice, categoryLabel } from "@/lib/format-price";
+import { StarRating } from "@/components/ui/star-rating";
 
 export const metadata = {
   title: "Store",
@@ -16,6 +17,32 @@ export default async function StorePage() {
     where: { published: true },
     orderBy: [{ featured: "desc" }, { order: "asc" }, { createdAt: "desc" }],
   });
+
+  // Pull rating averages + sales counts in parallel — keyed by productId.
+  const productIds = products.map((p) => p.id);
+  const [ratings, sales] = await Promise.all([
+    prisma.review.groupBy({
+      by: ["productId"],
+      where: { productId: { in: productIds } },
+      _avg: { rating: true },
+      _count: { _all: true },
+    }),
+    prisma.orderItem.groupBy({
+      by: ["productId"],
+      where: {
+        productId: { in: productIds },
+        order: { status: "paid" },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+  const ratingByProduct = new Map(
+    ratings.map((r) => [
+      r.productId,
+      { avg: r._avg.rating ?? 0, count: r._count._all },
+    ]),
+  );
+  const salesByProduct = new Map(sales.map((s) => [s.productId, s._count._all]));
 
   return (
     <>
@@ -44,7 +71,10 @@ export default async function StorePage() {
             <EmptyState />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {products.map((p) => (
+              {products.map((p) => {
+                const rating = ratingByProduct.get(p.id);
+                const salesCount = salesByProduct.get(p.id) ?? 0;
+                return (
                 <Reveal key={p.id} className="h-full">
                   <Link
                     href={`/store/${p.slug}`}
@@ -81,6 +111,29 @@ export default async function StorePage() {
                       <h3 className="font-display text-xl md:text-2xl font-medium tracking-tight mb-1.5 group-hover:text-[var(--color-accent)] transition-colors">
                         {p.title}
                       </h3>
+                      {(rating?.count || salesCount > 0) && (
+                        <div className="flex items-center gap-3 text-[11px] text-[var(--color-fg-muted)] mb-2">
+                          {rating && rating.count > 0 ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <StarRating value={rating.avg} size={11} />
+                              <span className="tabular-nums">{rating.avg.toFixed(1)}</span>
+                              <span className="text-[var(--color-fg-dim)]">
+                                ({rating.count})
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-[var(--color-fg-dim)]">No reviews yet</span>
+                          )}
+                          {salesCount > 0 && (
+                            <>
+                              <span className="text-[var(--color-fg-dim)]">·</span>
+                              <span className="tabular-nums">
+                                {salesCount} {salesCount === 1 ? "sale" : "sales"}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      )}
                       {p.summary && (
                         <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed line-clamp-2 mb-4">
                           {p.summary}
@@ -97,7 +150,8 @@ export default async function StorePage() {
                     </div>
                   </Link>
                 </Reveal>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

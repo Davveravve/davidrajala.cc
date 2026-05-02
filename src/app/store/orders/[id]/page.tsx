@@ -107,9 +107,18 @@ export default async function CustomerOrderDetailPage({
                   className="flex items-center gap-3 px-5 py-4"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">
-                      {item.product?.title ?? "Product"}
-                    </div>
+                    {item.product?.slug ? (
+                      <Link
+                        href={`/store/${item.product.slug}`}
+                        className="font-medium text-sm truncate block hover:text-[var(--color-accent)] transition-colors"
+                      >
+                        {item.product.title}
+                      </Link>
+                    ) : (
+                      <div className="font-medium text-sm truncate">
+                        {item.product?.title ?? "Product"}
+                      </div>
+                    )}
                     <div className="text-xs text-[var(--color-fg-muted)] mt-0.5 truncate">
                       {item.fileNameSnapshot || item.product?.fileName || "—"}
                       {token && ` · ${remaining}/${MAX_DOWNLOADS} downloads left`}

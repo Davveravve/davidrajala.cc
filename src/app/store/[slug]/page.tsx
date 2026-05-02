@@ -138,53 +138,88 @@ export default async function StoreProductPage({
                 </a>
               )}
 
-              <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 space-y-5">
-                {owns && !product.externalUrl && (
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
-                    Owned
-                  </span>
-                )}
-                <div className="flex items-baseline justify-between">
-                  <span className="font-display text-3xl font-medium tabular-nums">
-                    {formatPrice(product.price, product.currency)}
-                  </span>
-                  {product.fileSize > 0 && (
-                    <span className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
-                      {formatFileSize(product.fileSize)}
-                      {owns && !product.externalUrl && (
-                        <> · {remaining} downloads remaining</>
-                      )}
+              {owns && !product.externalUrl ? (
+                // Owned-state card: hide price, lead with files + download.
+                <div className="mt-8 rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-surface)] p-6 space-y-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/30">
+                      Owned
                     </span>
-                  )}
-                </div>
+                    <span className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
+                      {remaining} / {MAX_DOWNLOADS} downloads left
+                    </span>
+                  </div>
 
-                {product.externalUrl ? (
-                  <a
-                    href={product.externalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-medium text-sm hover:shadow-[0_0_30px_var(--color-accent-glow)] transition-shadow"
-                  >
-                    <ExternalLinkIcon size={14} />
-                    Buy on external site
-                  </a>
-                ) : ownedItem ? (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)] mb-2">
+                      Files
+                    </div>
+                    <ul className="space-y-1.5">
+                      {product.fileName ? (
+                        <li className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] text-sm">
+                          <Download
+                            size={13}
+                            className="text-[var(--color-fg-muted)] flex-shrink-0"
+                          />
+                          <span className="flex-1 truncate font-mono text-xs">
+                            {product.fileName}
+                          </span>
+                          {product.fileSize > 0 && (
+                            <span className="text-[10px] tabular-nums text-[var(--color-fg-muted)] flex-shrink-0">
+                              {formatFileSize(product.fileSize)}
+                            </span>
+                          )}
+                        </li>
+                      ) : (
+                        <li className="text-[11px] text-[var(--color-fg-muted)]">
+                          No file attached.
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+
                   <OwnedDownloadButton
-                    orderItemId={ownedItem.id}
-                    orderId={ownedItem.order.id}
+                    orderItemId={ownedItem!.id}
+                    orderId={ownedItem!.order.id}
                     remaining={remaining}
                   />
-                ) : (
-                  <BuyButton productId={product.id} title={product.title} />
-                )}
-
-                {product.fileName && (
-                  <div className="flex items-center gap-2 text-xs text-[var(--color-fg-muted)] pt-2 border-t border-[var(--color-border)]">
-                    <Download size={12} />
-                    <span className="truncate">Includes {product.fileName}</span>
+                </div>
+              ) : (
+                // Unowned (or external): classic price + buy card.
+                <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 space-y-5">
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-display text-3xl font-medium tabular-nums">
+                      {formatPrice(product.price, product.currency)}
+                    </span>
+                    {product.fileSize > 0 && (
+                      <span className="text-[10px] uppercase tracking-[0.1em] font-medium text-[var(--color-fg-muted)]">
+                        {formatFileSize(product.fileSize)}
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  {product.externalUrl ? (
+                    <a
+                      href={product.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-center gap-2 px-5 py-3 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-medium text-sm hover:shadow-[0_0_30px_var(--color-accent-glow)] transition-shadow"
+                    >
+                      <ExternalLinkIcon size={14} />
+                      Buy on external site
+                    </a>
+                  ) : (
+                    <BuyButton productId={product.id} title={product.title} />
+                  )}
+
+                  {product.fileName && (
+                    <div className="flex items-center gap-2 text-xs text-[var(--color-fg-muted)] pt-2 border-t border-[var(--color-border)]">
+                      <Download size={12} />
+                      <span className="truncate">Includes {product.fileName}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </aside>
           </div>
         </div>

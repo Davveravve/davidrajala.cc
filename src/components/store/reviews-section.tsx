@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentCustomer } from "@/lib/customer-auth";
 import { StarRating } from "@/components/ui/star-rating";
 import { ReviewForm } from "@/components/store/review-form";
+import { RemoveReviewButton } from "@/components/store/remove-review-button";
 import Link from "next/link";
 
 /// Server component — renders all reviews for a product, the rating
@@ -67,12 +68,11 @@ export async function ReviewsSection({ productId }: { productId: string }) {
 
       {customer ? (
         owned ? (
-          <ReviewForm productId={productId} existing={own ? {
-            rating: own.rating,
-            title: own.title,
-            body: own.body,
-            id: own.id,
-          } : null} />
+          // Hide the form once the customer has posted — they can remove
+          // it from their own review row in the list below to bring it back.
+          own ? null : (
+            <ReviewForm productId={productId} existing={null} />
+          )
         ) : (
           <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center mb-8">
             <p className="text-sm text-[var(--color-fg-muted)]">
@@ -106,7 +106,7 @@ export async function ReviewsSection({ productId }: { productId: string }) {
                     : "border-[var(--color-border)] bg-[var(--color-surface)]"
                 }`}
               >
-                <header className="flex items-center gap-3 mb-3">
+                <header className="flex items-start gap-3 mb-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] text-sm font-medium flex-shrink-0">
                     {initial}
                   </div>
@@ -130,6 +130,7 @@ export async function ReviewsSection({ productId }: { productId: string }) {
                       </time>
                     </div>
                   </div>
+                  {isOwn && <RemoveReviewButton reviewId={r.id} />}
                 </header>
                 {r.title && (
                   <h3 className="font-medium text-sm mb-1.5">{r.title}</h3>

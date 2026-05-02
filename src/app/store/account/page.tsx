@@ -85,9 +85,18 @@ export default async function StoreAccountPage() {
                     className="flex items-center gap-4 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm">
-                        {item.product?.title ?? "Product"}
-                      </div>
+                      {item.product?.slug ? (
+                        <Link
+                          href={`/store/${item.product.slug}`}
+                          className="font-medium text-sm hover:text-[var(--color-accent)] transition-colors"
+                        >
+                          {item.product.title}
+                        </Link>
+                      ) : (
+                        <div className="font-medium text-sm">
+                          {item.product?.title ?? "Product"}
+                        </div>
+                      )}
                       <div className="text-xs text-[var(--color-fg-muted)] mt-0.5">
                         Bought {new Date(order.createdAt).toLocaleDateString("en-GB")}
                         {item.fileNameSnapshot && ` · ${item.fileNameSnapshot}`}
@@ -180,7 +189,18 @@ export default async function StoreAccountPage() {
                         key={it.id}
                         className="py-2 text-sm flex items-center justify-between"
                       >
-                        <span className="truncate">{it.product?.title ?? "Product"}</span>
+                        {it.product?.slug ? (
+                          <Link
+                            href={`/store/${it.product.slug}`}
+                            className="truncate hover:text-[var(--color-accent)] transition-colors"
+                          >
+                            {it.product.title}
+                          </Link>
+                        ) : (
+                          <span className="truncate">
+                            {it.product?.title ?? "Product"}
+                          </span>
+                        )}
                         <span className="text-[var(--color-fg-muted)] tabular-nums">
                           {formatPrice(it.priceAtPurchase, o.currency)}
                         </span>
